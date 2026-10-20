@@ -138,8 +138,12 @@ jobs:
       - name: Fetch Cesium
         shell: bash
         run: |
-          scripts/fetch-cesium.sh
-          ls web/vendor/cesium | head -5
+          bash -x scripts/fetch-cesium.sh > fetch.log 2>&1 || true
+          if [ ! -f web/vendor/cesium/Cesium.js ]; then
+            { cat fetch.log; echo "--- web:"; ls -la web web/vendor 2>&1; } | tail -n 40 | sed 's/%/%25/g' > fetch.tail
+            echo "::error title=fetch-cesium::$(awk '{printf "%s%%0A", $0}' fetch.tail)"
+            exit 1
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 22
