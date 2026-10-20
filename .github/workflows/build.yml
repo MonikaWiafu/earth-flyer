@@ -121,7 +121,7 @@ jobs:
 
   # Desktop apps: Windows, macOS, Linux
   desktop:
-    needs: wasm
+    needs: web
     strategy:
       fail-fast: false
       matrix:
@@ -131,19 +131,11 @@ jobs:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"   # unsigned builds
     steps:
       - uses: actions/checkout@v4
+      # The exact site the web job assembled on Linux (Cesium + LibFPV wasm)
       - uses: actions/download-artifact@v4
         with:
-          name: wasm
-          path: web/wasm/
-      - name: Fetch Cesium
-        shell: bash
-        run: |
-          bash -x scripts/fetch-cesium.sh > fetch.log 2>&1 || true
-          if [ ! -f web/vendor/cesium/Cesium.js ]; then
-            { cat fetch.log; echo "--- web:"; ls -la web web/vendor 2>&1 || true; } | tail -n 40 | sed 's/%/%25/g' > fetch.tail || true
-            echo "::error title=fetch-cesium::$(awk '{printf "%s%%0A", $0}' fetch.tail)"
-            exit 1
-          fi
+          name: earth-flyer-web
+          path: web/
       - uses: actions/setup-node@v4
         with:
           node-version: 22
