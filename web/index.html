@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Earth Flyer</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="app.css">
+  <script>
+    // Cesium is bundled in vendor/cesium (scripts/fetch-cesium.sh). When it is
+    // missing (a bare checkout or a hosted preview) it loads from jsDelivr.
+    window.EF_CESIUM_VERSION = "1.145.0";
+    (function loadCesium() {
+      var local = "vendor/cesium/";
+      var cdn = "https://cdn.jsdelivr.net/npm/cesium@" + window.EF_CESIUM_VERSION + "/Build/Cesium/";
+      function add(base, onerror) {
+        window.CESIUM_BASE_URL = base;
+        var css = document.createElement("link");
+        css.rel = "stylesheet";
+        css.href = base + "Widgets/widgets.css";
+        document.head.appendChild(css);
+        var s = document.createElement("script");
+        s.src = base + "Cesium.js";
+        s.onload = function () { window.dispatchEvent(new Event("cesium-ready")); };
+        s.onerror = onerror;
+        document.head.appendChild(s);
+      }
+      add(local, function () {
+        console.warn("Earth Flyer: vendor/cesium missing, loading Cesium from the CDN");
+        add(cdn, function () {
+          document.getElementById("boot-msg").textContent =
+            "Could not load the 3D engine (Cesium). Check your internet connection.";
+        });
+      });
+    })();
+  </script>
+</head>
+<body>
+  <div id="globe"></div>
+
+  <div id="boot" class="boot">
+    <div class="boot-card">
+      <img src="assets/icon.svg" alt="" width="56" height="56">
+      <h1>Earth Flyer</h1>
+      <p id="boot-msg">Loading the globe…</p>
+    </div>
+  </div>
+
+  <!-- Search panel (top left) -->
+  <section id="search" class="panel search" aria-label="Search">
+    <form id="search-form" autocomplete="off">
+      <input id="search-input" type="search" placeholder="Search places (e.g. Eiffel Tower)" aria-label="Search places">
+      <button type="submit" class="icon-btn" aria-label="Search">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </form>
+    <ol id="search-results" class="results" hidden></ol>
+    <p id="search-source" class="muted small"></p>
+  </section>
+
+  <!-- Toolbar (top right) -->
+  <nav id="toolbar" class="panel toolbar" aria-label="Tools">
+    <button id="btn-drone" class="tool" title="Fly a drone here (D)">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5.5" cy="5.5" r="3"/><circle cx="18.5" cy="5.5" r="3"/><circle cx="5.5" cy="18.5" r="3"/><circle cx="18.5" cy="18.5" r="3"/><path d="M8 8l8 8M16 8l-8 8"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/></g></svg>
+      <span>Drone</span>
+    </button>
+    <button id="btn-sky" class="tool" title="Sun, time and atmosphere">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></g></svg>
+      <span>Sky</span>
+    </button>
+    <button id="btn-home" class="tool" title="Back to space view">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></g></svg>
+      <span>Earth</span>
+    </button>
+    <button id="btn-settings" class="tool" title="Settings and Google API key">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+
+  <!-- Sky panel -->
+  <section id="sky-panel" class="panel popover" hidden aria-label="Sky and time">
+    <h2>Sun and sky</h2>
+    <label class="row">Time of day <output id="sky-time-out">now</output></label>
+    <input id="sky-time" type="range" min="0" max="1439" step="5" aria-label="Local solar time">
+    <div class="row gap">
+      <button id="sky-now" class="btn small">Now</button>
+      <label class="check"><input id="sky-animate" type="checkbox" checked> Real-time clock</label>
+    </div>
+    <label class="check"><input id="sky-lighting" type="checkbox" checked> Sun lighting (day/night)</label>
+    <label class="check"><input id="sky-atmo" type="checkbox" checked> Atmosphere</label>
+    <label class="check"><input id="sky-stars" type="checkbox" checked> Stars, sun and moon</label>
+    <label class="check"><input id="sky-fog" type="checkbox" checked> Distance fog</label>
+    <p class="muted small">Google's 3D cities have daylight baked into their photos, so night darkens the sky and the plain globe but not the buildings themselves.</p>
+  </section>
+
+  <!-- Settings dialog -->
+  <dialog id="settings" class="dialog" aria-labelledby="settings-title">
+    <form method="dialog" id="settings-form">
+      <h2 id="settings-title">Settings</h2>
+      <label for="set-key">Google Maps Platform API key</label>
+      <input id="set-key" type="password" placeholder="AIza…" spellcheck="false" autocomplete="off">
+      <p class="muted small">Needs the <b>Map Tiles API</b> (3D cities) and <b>Geocoding API</b> (search) enabled. Stored only in this browser/app. <a href="https://github.com/" id="key-guide-link" target="_blank" rel="noopener">How to get a key</a></p>
+      <div class="row gap">
+        <button type="button" id="set-test" class="btn small">Test key</button>
+        <span id="set-test-out" class="small"></span>
+      </div>
+      <fieldset>
+        <legend>Map source</legend>
+        <label class="check"><input type="radio" name="mode" value="google"> Google Photorealistic 3D (needs key)</label>
+        <label class="check"><input type="radio" name="mode" value="free"> Free satellite imagery (no key, flat ground)</label>
+      </fieldset>
+      <label class="check"><input id="set-quality" type="checkbox"> High detail (slower, sharper)</label>
+      <div class="row end gap">
+        <button value="cancel" class="btn ghost">Cancel</button>
+        <button value="save" id="set-save" class="btn primary">Save and reload map</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Drone mode layers -->
+  <div id="drone-ui" hidden>
+    <canvas id="drone-noise" class="layer noise" aria-hidden="true"></canvas>
+    <canvas id="drone-osd" class="layer osd" aria-hidden="true"></canvas>
+    <canvas id="drone-overlay" class="layer overlay"></canvas>
+    <div id="drone-hud" class="drone-hud panel">
+      <div class="hud-row"><b id="hud-engine">Drone</b><span id="hud-cam" class="pill">FPV</span></div>
+      <div id="hud-status" class="small"></div>
+      <div class="hud-keys small muted">
+        <span><kbd>C</kbd> camera</span><span><kbd>R</kbd> respawn</span><span><kbd>F8</kbd> drone setup</span><span><kbd>X</kbd> exit</span>
+      </div>
+      <div class="row gap">
+        <button id="drone-cam" class="btn small">Camera</button>
+        <button id="drone-reset" class="btn small">Respawn</button>
+        <button id="drone-exit" class="btn small primary">Exit drone</button>
+      </div>
+    </div>
+    <div id="drone-help" class="drone-help panel small">
+      <b>How to fly</b>
+      <p>Plug in your radio (USB joystick mode) or a gamepad and move a stick so the browser sees it. Press <kbd>F8</kbd> to run the radio setup wizard.</p>
+      <p>Keyboard fallback: <kbd>W</kbd>/<kbd>S</kbd> throttle, <kbd>A</kbd>/<kbd>D</kbd> yaw, arrow keys pitch/roll, <kbd>Enter</kbd> arm, <kbd>T</kbd> turtle.</p>
+      <button id="drone-help-close" class="btn small">Got it</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+  <div id="coords" class="coords small"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

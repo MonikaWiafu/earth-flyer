@@ -1,0 +1,81 @@
+{
+  "name": "earth-flyer",
+  "productName": "Earth Flyer",
+  "version": "0.1.0",
+  "description": "Fly an FPV drone (LibFPV + Betaflight) over Google Photorealistic 3D Tiles",
+  "main": "main.js",
+  "license": "GPL-3.0-or-later",
+  "author": "MonikaWiafu",
+  "homepage": "https://github.com/MonikaWiafu/earth-flyer",
+  "scripts": {
+    "start": "electron .",
+    "copy-web": "node scripts/copy-web.js",
+    "dist": "npm run copy-web && electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "37.2.0",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "io.github.monikawiafu.earthflyer",
+    "productName": "Earth Flyer",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "package.json",
+      "web/**/*",
+      "build/icon.png"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "EarthFlyer-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "EarthFlyer-Portable-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.games",
+      "icon": "build/icon.png",
+      "artifactName": "EarthFlyer-${version}-mac.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Game",
+      "icon": "build/icon.png",
+      "artifactName": "EarthFlyer-${version}-linux-${arch}.${ext}",
+      "maintainer": "MonikaWiafu <MonikaWiafu@users.noreply.github.com>"
+    }
+  }
+}

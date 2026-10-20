@@ -1,0 +1,9 @@
+node_modules/
+build/
+web/vendor/
+web/wasm/
+desktop/node_modules/
+desktop/dist/
+desktop/web/
+ef_test_data/
+.DS_Store
