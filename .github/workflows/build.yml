@@ -137,7 +137,9 @@ jobs:
           path: web/wasm/
       - name: Fetch Cesium
         shell: bash
-        run: scripts/fetch-cesium.sh
+        run: |
+          scripts/fetch-cesium.sh
+          ls web/vendor/cesium | head -5
       - uses: actions/setup-node@v4
         with:
           node-version: 22
