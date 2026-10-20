@@ -54,6 +54,38 @@ jobs:
              -Lbuild/native -lfpv -lm -Wl,-rpath,$PWD/build/native -o build/test_glue
           cd build && ./test_glue | grep -v '^\[libfpv\]'
 
+  # The real app + LibFPV WebAssembly in headless Chrome
+  browser-test:
+    needs: wasm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: wasm
+          path: web/wasm/
+      - run: scripts/fetch-cesium.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Smoke test (drone mode with LibFPV)
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.49.1
+          npx playwright install --with-deps chromium
+          python3 -m http.server -d web 8765 &
+          sleep 2
+          mkdir -p shots
+          EXPECT_LIBFPV=1 node tools/smoke-test.mjs http://localhost:8765/ shots 2>&1 | tee smoke.log || {
+            tail -n 30 smoke.log | sed 's/%/%25/g' | while IFS= read -r line; do echo "::error title=smoke::$line"; done
+            exit 1
+          }
+          grep -o '"name": "[^"]*"\|"version": "[^"]*"\|"simTimeAdvanced": [a-z]*\|"osdPixels": [0-9]*' smoke.log | sed 's/^/::notice title=smoke::/'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-screenshots
+          path: shots/
+
   # Static site on GitHub Pages
   web:
     needs: wasm
