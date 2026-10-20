@@ -1,7 +1,7 @@
 // Earth Flyer - entry point.
 /* global Cesium */
 import { loadSettings, saveSettings, effectiveMode, wireSettingsDialog } from "./settings.js";
-import { createViewer, applyMapSource, swoopTo, flyHome, wireCoords } from "./globe.js";
+import { createViewer, applyMapSource, swoopTo, flyHome, wireCoords, setFreeTerrain } from "./globe.js";
 import { wireSearch } from "./search.js";
 import { wireSky } from "./sky.js";
 import { DroneMode } from "./drone/drone-mode.js";
@@ -44,7 +44,27 @@ async function main() {
       }
     }
     search.refresh();
+    syncTerrainButton();
   }
+
+  // Terrain toggle (free mode only; Google's 3D tiles already include terrain).
+  const terrainBtn = document.getElementById("btn-terrain");
+  function syncTerrainButton() {
+    const google = mode === "google";
+    terrainBtn.disabled = google;
+    terrainBtn.style.opacity = google ? "0.45" : "";
+    terrainBtn.title = google ? "Google 3D tiles already include terrain" : "3D terrain on/off (T)";
+    terrainBtn.setAttribute("aria-pressed", String(!google && settings.terrain !== false));
+  }
+  function toggleTerrain() {
+    if (mode === "google" || drone.active) return;
+    settings.terrain = settings.terrain === false;
+    saveSettings(settings);
+    setFreeTerrain(viewer, settings.terrain);
+    syncTerrainButton();
+    toast(settings.terrain ? "3D terrain on" : "3D terrain off (flat globe)", 1500);
+  }
+  terrainBtn.addEventListener("click", toggleTerrain);
 
   const search = wireSearch({
     getMode: () => mode,
@@ -61,7 +81,9 @@ async function main() {
   document.getElementById("btn-home").addEventListener("click", () => flyHome(viewer));
   window.addEventListener("keydown", (e) => {
     if (drone.active || e.target.closest("input, textarea, dialog")) return;
-    if (e.code === "KeyD" && !e.ctrlKey && !e.metaKey) drone.enter();
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.code === "KeyD") drone.enter();
+    if (e.code === "KeyT") toggleTerrain();
   });
 
   await loadSource();

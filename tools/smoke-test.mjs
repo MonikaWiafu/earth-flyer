@@ -18,6 +18,16 @@ await page.waitForFunction(() => document.getElementById("boot").classList.conta
 await page.waitForTimeout(2000);
 await page.screenshot({ path: `${out}/1-space.png` });
 
+// Free 3D terrain: sample Mount Rainier's summit (4,392 m) from the AWS tiles.
+const terrain = await page.evaluate(async () => {
+  try {
+    const mod = await import("./js/terrain.js");
+    const p = window.efViewer.scene.terrainProvider;
+    const [h] = await mod.sampleFreeTerrain(p, [Cesium.Cartographic.fromDegrees(-121.7603, 46.8523)]);
+    return { on: p instanceof Cesium.CustomHeightmapTerrainProvider, rainierSummitM: h === undefined ? null : Math.round(h) };
+  } catch (e) { return { error: String(e) }; }
+});
+
 // Jump close to the ground (Golden Gate area) and enter drone mode.
 await page.evaluate(() => {
   const v = window.efViewer;
@@ -65,7 +75,7 @@ await page.waitForTimeout(500);
 const exited = await page.evaluate(() => !document.body.classList.contains("drone"));
 
 const realErrors = errors.filter((e) => !/ERR_TUNNEL|ERR_NAME|Failed to load resource/.test(e) || /wasm/.test(e));
-console.log(JSON.stringify({ hud, cam, exited, engine, errors: realErrors.slice(0, 25) }, null, 2));
+console.log(JSON.stringify({ hud, cam, exited, engine, terrain, errors: realErrors.slice(0, 25) }, null, 2));
 await browser.close();
 
 if (process.env.EXPECT_LIBFPV) {
@@ -74,6 +84,8 @@ if (process.env.EXPECT_LIBFPV) {
   if (engine.real && !engine.simTimeAdvanced) fails.push("LibFPV simulation time did not advance");
   if (engine.real && engine.osdPixels < 100) fails.push("Betaflight OSD did not draw");
   if (!exited) fails.push("could not exit drone mode");
+  if (!terrain.on) fails.push("free 3D terrain provider is not active");
+  if (!(terrain.rainierSummitM > 3800 && terrain.rainierSummitM < 4600)) fails.push(`terrain height check failed: ${JSON.stringify(terrain)}`);
   if (realErrors.some((e) => e.startsWith("pageerror"))) fails.push("page errors: " + realErrors.join(" | "));
   if (fails.length) { console.error("SMOKE TEST FAILED:\n- " + fails.join("\n- ")); process.exit(1); }
   console.log("SMOKE TEST PASSED");

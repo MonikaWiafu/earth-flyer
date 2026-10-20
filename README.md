@@ -12,7 +12,9 @@ both from the same code.
 ## Features
 
 - **Globe:** Google Photorealistic 3D Tiles with your own API key, or free
-  Esri satellite imagery with no key.
+  Esri satellite imagery with no key, draped over **free 3D terrain**
+  (AWS Terrain Tiles). The **Terrain** button or `T` turns the terrain on
+  and off.
 - **Search and fly-to:** a Google Earth-style swoop to any place or to
   `lat, lon` coordinates. Search uses Google in Google mode (a condition of
   the 3D tiles terms) and OpenStreetMap Nominatim otherwise.
@@ -40,6 +42,7 @@ both from the same code.
 | --- | --- | --- |
 | Globe | Left-drag / right-drag / wheel | Pan / tilt and zoom / zoom |
 | Globe | `D` | Drone mode |
+| Globe | `T` | 3D terrain on/off (free mode) |
 | Drone | Radio or gamepad | Fly (move a stick once so the browser sees it) |
 | Drone | `F8` | LibFPV overlay: radio wizard, rates, presets, OSD |
 | Drone | `W`/`S`, `A`/`D`, arrow keys, `Enter` | Keyboard fallback: throttle, yaw, pitch/roll, arm |
@@ -103,6 +106,8 @@ only; the map data has its own terms:
   [Google Maps Platform Terms](https://cloud.google.com/maps-platform/terms).
 - Free mode imagery: © Esri, Maxar, Earthstar Geographics. Search ©
   OpenStreetMap contributors (Nominatim).
+- Free 3D terrain: [Mapzen Terrain Tiles on AWS](https://registry.opendata.aws/terrain-tiles/)
+  (SRTM, GMTED, NED, ETOPO1 and other public sources).
 - [CesiumJS](https://github.com/CesiumGS/cesium) (Apache-2.0) and
   [LibFPV](https://github.com/hammerill/libfpv) / Betaflight (GPL-3.0).
 

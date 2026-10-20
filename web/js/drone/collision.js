@@ -2,6 +2,7 @@
 // including buildings and trees, or the plain globe) on a grid and hands it
 // to the drone engine as a triangle mesh in local ENU metres.
 /* global Cesium */
+import { sampleFreeTerrain } from "../terrain.js";
 
 export class CollisionGrid {
   constructor(viewer, frame, engine, { size = 160, cells = 32, exclude = [] } = {}) {
@@ -96,6 +97,9 @@ export class CollisionGrid {
     if (this.viewer._efTileset && scene.sampleHeightSupported) {
       const out = await scene.sampleHeightMostDetailed(cartos.map((c) => c.clone()), this.exclude, 0.5);
       return out.map((c) => (c && c.height !== undefined && isFinite(c.height) ? c.height : undefined));
+    }
+    if (scene.terrainProvider instanceof Cesium.CustomHeightmapTerrainProvider) {
+      try { return await sampleFreeTerrain(scene.terrainProvider, cartos); } catch (_) { /* fall through */ }
     }
     const flat = scene.terrainProvider instanceof Cesium.EllipsoidTerrainProvider;
     return cartos.map((c) => {

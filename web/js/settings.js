@@ -6,6 +6,7 @@ const defaults = {
   apiKey: "",
   mode: "auto",     // "google" | "free" | "auto" (google when a key exists)
   highDetail: false,
+  terrain: true,    // free 3D terrain under the free imagery
   helpSeen: false,
 };
 

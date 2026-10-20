@@ -1,3 +1,5 @@
+import { createFreeTerrainProvider, sampleFreeTerrain } from "./terrain.js";
+
 // The globe: Cesium viewer, map source (Google Photorealistic 3D Tiles or free
 // imagery), and the Google Earth-like camera feel.
 /* global Cesium */
@@ -75,8 +77,9 @@ export async function applyMapSource(viewer, mode, settings) {
     return { mode, tileset };
   }
 
-  // Free mode: Esri World Imagery on the WGS84 ellipsoid (no terrain).
+  // Free mode: Esri World Imagery, optionally draped over free 3D terrain.
   scene.globe.show = true;
+  setFreeTerrain(viewer, settings.terrain !== false);
   const provider = new Cesium.UrlTemplateImageryProvider({
     url: ESRI_IMAGERY,
     maximumLevel: 19,
@@ -84,6 +87,18 @@ export async function applyMapSource(viewer, mode, settings) {
   });
   viewer.imageryLayers.addImageryProvider(provider);
   return { mode, tileset: null };
+}
+
+let freeTerrain = null;
+// Free 3D terrain on/off (only matters in free mode; Google's tiles carry their own).
+export function setFreeTerrain(viewer, on) {
+  if (on) {
+    freeTerrain = freeTerrain || createFreeTerrainProvider();
+    viewer.scene.terrainProvider = freeTerrain;
+  } else {
+    viewer.scene.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+  }
+  viewer._efTerrainOn = on;
 }
 
 // Flies Google Earth-style to a place: a high arc, then a settled oblique view
@@ -136,6 +151,12 @@ export async function sampleGroundHeight(viewer, carto, exclude) {
   } catch (_) { /* fall through */ }
   // No terrain (free mode): the surface is the WGS84 ellipsoid itself.
   if (scene.terrainProvider instanceof Cesium.EllipsoidTerrainProvider) return 0;
+  if (scene.terrainProvider instanceof Cesium.CustomHeightmapTerrainProvider) {
+    try {
+      const [h] = await sampleFreeTerrain(scene.terrainProvider, [carto]);
+      if (h !== undefined) return h;
+    } catch (_) { /* fall through */ }
+  }
   const h = scene.globe.getHeight(carto);
   return h === undefined ? 0 : h;
 }
