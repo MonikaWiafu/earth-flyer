@@ -78,6 +78,7 @@ export class OverlayRenderer {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     const dd = this.engine.overlayRender(dt);
+    this.lastCommandCount = dd ? dd.count : 0;
     if (!dd) return false;
 
     gl.useProgram(this.prog);

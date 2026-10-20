@@ -79,7 +79,7 @@ jobs:
             tail -n 30 smoke.log | sed 's/%/%25/g' | while IFS= read -r line; do echo "::error title=smoke::$line"; done
             exit 1
           }
-          grep -o '"name": "[^"]*"\|"version": "[^"]*"\|"simTimeAdvanced": [a-z]*\|"osdPixels": [0-9]*\|"rainierSummitM": [0-9a-z]*' smoke.log | sed 's/^/::notice title=smoke::/'
+          grep -o '"name": "[^"]*"\|"version": "[^"]*"\|"simTimeAdvanced": [a-z]*\|"osdPixels": [0-9]*\|"rainierSummitM": [0-9a-z]*\|"drawCommands": [0-9]*\|"closedWithF8": [a-z]*' smoke.log | sed 's/^/::notice title=smoke::/'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

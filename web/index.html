@@ -112,9 +112,23 @@
       <fieldset>
         <legend>Map source</legend>
         <label class="check"><input type="radio" name="mode" value="google"> Google Photorealistic 3D (needs key)</label>
-        <label class="check"><input type="radio" name="mode" value="free"> Free satellite imagery (no key, flat ground)</label>
+        <label class="check"><input type="radio" name="mode" value="free"> Free satellite imagery + 3D terrain (no key)</label>
       </fieldset>
       <label class="check"><input id="set-quality" type="checkbox"> High detail (slower, sharper)</label>
+      <fieldset class="controls">
+        <legend>Drone controls</legend>
+        <p class="muted small">Radio and gamepad mapping (setup wizard), rates and feel, modes and quad type are in the LibFPV setup menu. You can also press <kbd>F8</kbd> anytime. Saved on this device.</p>
+        <button type="button" id="set-drone-setup" class="btn small">Open drone setup</button>
+        <details id="keymap-details">
+          <summary>Keyboard keys</summary>
+          <p class="muted small">Click a key, then press the new one. Changes save right away.</p>
+          <table id="keymap" class="keymap"></table>
+          <div class="row gap">
+            <button type="button" id="keymap-reset" class="btn small ghost">Reset to defaults</button>
+            <span id="keymap-msg" class="small muted"></span>
+          </div>
+        </details>
+      </fieldset>
       <div class="row end gap">
         <button value="cancel" class="btn ghost">Cancel</button>
         <button value="save" id="set-save" class="btn primary">Save and reload map</button>
@@ -126,7 +140,6 @@
   <div id="drone-ui" hidden>
     <canvas id="drone-noise" class="layer noise" aria-hidden="true"></canvas>
     <canvas id="drone-osd" class="layer osd" aria-hidden="true"></canvas>
-    <canvas id="drone-overlay" class="layer overlay"></canvas>
     <div id="drone-hud" class="drone-hud panel">
       <div class="hud-row"><b id="hud-engine">Drone</b><span id="hud-cam" class="pill">FPV</span></div>
       <div id="hud-status" class="small"></div>
@@ -146,6 +159,9 @@
       <button id="drone-help-close" class="btn small">Got it</button>
     </div>
   </div>
+
+  <!-- LibFPV setup menu (F8): over the globe or during flight -->
+  <canvas id="drone-overlay" class="layer overlay"></canvas>
 
   <div id="toast" class="toast" role="status" hidden></div>
   <div id="coords" class="coords small"></div>

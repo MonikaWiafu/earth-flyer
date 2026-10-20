@@ -44,9 +44,10 @@ both from the same code.
 | Globe | `D` | Drone mode |
 | Globe | `T` | 3D terrain on/off (free mode) |
 | Drone | Radio or gamepad | Fly (move a stick once so the browser sees it) |
-| Drone | `F8` | LibFPV overlay: radio wizard, rates, presets, OSD |
+| Anywhere | `F8` or ⚙ Settings → **Open drone setup** | LibFPV setup menu: radio/gamepad wizard and mapping, rates, modes, quad presets, OSD |
 | Drone | `W`/`S`, `A`/`D`, arrow keys, `Enter` | Keyboard fallback: throttle, yaw, pitch/roll, arm |
 | Drone | `C` / `R` / `X` | Change camera / respawn / exit |
+| Settings | **Drone controls → Keyboard keys** | Rebind every keyboard flying key and the camera/respawn/exit keys |
 | Desktop | `F11` / `F12` | Fullscreen / developer tools |
 
 ## Developing

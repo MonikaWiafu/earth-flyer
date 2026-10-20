@@ -5,6 +5,7 @@ import { createViewer, applyMapSource, swoopTo, flyHome, wireCoords, setFreeTerr
 import { wireSearch } from "./search.js";
 import { wireSky } from "./sky.js";
 import { DroneMode } from "./drone/drone-mode.js";
+import { wireKeymapEditor } from "./keymap-editor.js";
 
 const GUIDE_URL = "https://github.com/MonikaWiafu/earth-flyer/blob/main/docs/GOOGLE_API_KEY.md";
 
@@ -79,8 +80,18 @@ async function main() {
   window.efDrone = drone; // handy in devtools
   document.getElementById("btn-drone").addEventListener("click", () => (drone.active ? drone.exit() : drone.enter()));
   document.getElementById("btn-home").addEventListener("click", () => flyHome(viewer));
+  wireKeymapEditor({ settings, save: saveSettings, onChange: () => drone.refreshKeymap() });
+  document.getElementById("set-drone-setup").addEventListener("click", () => {
+    document.getElementById("settings").close("setup");
+    drone.openSetup();
+  });
   window.addEventListener("keydown", (e) => {
-    if (drone.active || e.target.closest("input, textarea, dialog")) return;
+    if (e.code === "F8" && !drone.active && !drone.setupOpen) {
+      e.preventDefault();
+      if (!document.getElementById("settings").open) drone.openSetup();
+      return;
+    }
+    if (drone.active || drone.setupOpen || e.target.closest("input, textarea, dialog")) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.code === "KeyD") drone.enter();
     if (e.code === "KeyT") toggleTerrain();

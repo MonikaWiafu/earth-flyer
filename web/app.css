@@ -85,6 +85,16 @@ kbd { font: 11px ui-monospace, monospace; padding: 1px 5px; border: 1px solid va
   background: rgba(127,127,127,.1); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 6px 0 4px; }
 .dialog fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 14px 0; padding: 6px 12px; }
 
+/* settings: drone controls */
+.dialog { max-height: calc(100vh - 32px); overflow: auto; }
+.controls summary { cursor: pointer; margin: 10px 0 4px; font-weight: 600; }
+.keymap { width: 100%; border-collapse: collapse; margin: 6px 0; }
+.keymap th { text-align: left; font-size: 11px; color: var(--muted); font-weight: 600; padding: 8px 0 2px; }
+.keymap td { padding: 3px 0; }
+.keymap td:last-child { text-align: right; }
+.keymap .keybtn { min-width: 96px; font: 12px ui-monospace, monospace; }
+.keymap .keybtn.listening { background: var(--accent); color: var(--accent-ink); }
+
 /* drone */
 .layer { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .osd { image-rendering: auto; object-fit: contain; z-index: 5; }

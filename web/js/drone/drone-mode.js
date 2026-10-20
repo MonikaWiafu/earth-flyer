@@ -6,14 +6,13 @@ import { EnuFrame, applyCamera } from "./enu.js";
 import { CollisionGrid } from "./collision.js";
 import { BasicDrone } from "./basic-drone.js";
 import { loadLibFPV, FLAGS } from "./libfpv.js";
-import { fpvKey } from "./keys.js";
+import { fpvKeyFromCode, compileKeymap, defaultKeymap, keyLabel } from "./keys.js";
 import { OverlayRenderer } from "./overlay-gl.js";
 import { OsdLayer, NoiseLayer, MotorAudio } from "./effects.js";
 import { sampleGroundHeight, fmtDist } from "../globe.js";
 
 const CAMS = ["fpv", "chase", "los"];
 const CAM_LABEL = { fpv: "FPV", chase: "Chase", los: "Line of sight" };
-const OUR_KEYS = { KeyC: "camera", KeyR: "respawn", KeyX: "exit" };
 
 export class DroneMode {
   constructor(viewer, { toast, settings, saveSettings }) {
@@ -34,6 +33,10 @@ export class DroneMode {
     this.noise = new NoiseLayer(document.getElementById("drone-noise"));
     this.overlayCanvas = document.getElementById("drone-overlay");
     this.overlay = null;
+    this.keymap = compileKeymap(settings.keymap);
+    this.setupOpen = false;
+    this._onSetupKeyDown = (e) => this._setupKey(e, true);
+    this._onSetupKeyUp = (e) => this._setupKey(e, false);
     this._onKeyDown = (e) => this._key(e, true);
     this._onKeyUp = (e) => this._key(e, false);
     this._onPreUpdate = () => this._update();
@@ -109,6 +112,7 @@ export class DroneMode {
     this.ui.hidden = false;
     document.getElementById("drone-help").hidden = !!this.settings.helpSeen;
     this.hud.engine.textContent = engine.name;
+    this._renderKeyHints();
     this._setCam(0);
     window.addEventListener("keydown", this._onKeyDown, true);
     window.addEventListener("keyup", this._onKeyUp, true);
@@ -205,26 +209,102 @@ export class DroneMode {
     }
   }
 
+  // Rebuild the key lookup after the player edits the keyboard keys in Settings.
+  refreshKeymap() {
+    this.keymap = compileKeymap(this.settings.keymap);
+    if (this.active) this._renderKeyHints();
+  }
+
+  _renderKeyHints() {
+    const m = { ...defaultKeymap(), ...(this.settings.keymap || {}) };
+    const k = (id) => `<kbd>${keyLabel(m[id]).replace(/</g, "&lt;")}</kbd>`;
+    document.querySelector(".hud-keys").innerHTML =
+      `<span>${k("camera")} camera</span><span>${k("respawn")} respawn</span><span><kbd>F8</kbd> drone setup</span><span>${k("exit")} exit</span>`;
+    document.querySelector("#drone-help p:nth-of-type(2)").innerHTML =
+      `Keyboard fallback: ${k("throttleUp")}/${k("throttleDown")} throttle, ${k("yawLeft")}/${k("yawRight")} yaw, ` +
+      `${k("pitchForward")}${k("pitchBack")}${k("rollLeft")}${k("rollRight")} pitch/roll, ${k("arm")} arm, ${k("turtle")} turtle. ` +
+      `Change keys in Settings → Drone controls.`;
+  }
+
   _key(e, down) {
     if (!this.active) return;
     const engine = this.engine;
     const overlayInput = engine.overlayWantsInput?.();
-    if (down && !overlayInput && OUR_KEYS[e.code] && !e.repeat) {
-      const act = OUR_KEYS[e.code];
-      if (act === "camera") this._setCam(this.camIndex + 1);
-      if (act === "respawn") this.respawn();
-      if (act === "exit") this.exit();
-      e.preventDefault();
-      e.stopPropagation();
+    // The setup menu (F8) gets the raw keys: navigation, text fields, the toggle itself.
+    if (overlayInput || e.code === "F8") {
+      this._forwardRaw(e, down, overlayInput);
       return;
     }
-    const code = fpvKey(e);
+    const hit = this.keymap.get(e.code);
+    if (!hit) return; // unbound keys do nothing in flight (rebinding frees the default keys)
+    e.preventDefault();
+    e.stopPropagation();
+    if (hit.fpv) {
+      if (!e.repeat) engine.key(hit.fpv, down);
+      return;
+    }
+    if (!down || e.repeat) return;
+    if (hit.action === "camera") this._setCam(this.camIndex + 1);
+    if (hit.action === "respawn") this.respawn();
+    if (hit.action === "exit") this.exit();
+  }
+
+  _forwardRaw(e, down, textInput) {
+    const code = fpvKeyFromCode(e.code);
     if (code) {
-      if (!e.repeat) engine.key(code, down);
+      if (!e.repeat) this.engine.key(code, down);
       e.preventDefault();
       e.stopPropagation();
     }
-    if (down && overlayInput && e.key.length === 1 && !e.ctrlKey && !e.metaKey) engine.overlayText?.(e.key);
+    if (down && textInput && e.key.length === 1 && !e.ctrlKey && !e.metaKey) this.engine.overlayText?.(e.key);
+  }
+
+  // ---- drone setup menu over the globe (Settings → Drone controls, or F8) ----
+  async openSetup() {
+    if (this.active) { this.engine?.overlaySetOpen?.(true); return true; }
+    if (this.setupOpen) return true;
+    const engine = await this._engine();
+    if (!engine.hasOverlay || !this.overlay) {
+      this.toast("The drone setup menu needs the LibFPV build, which didn't load here. Keyboard keys can still be changed under Keyboard keys.", 6000);
+      return false;
+    }
+    engine.overlaySetOpen(true);
+    this.setupOpen = true;
+    this.overlayCanvas.classList.add("active");
+    window.addEventListener("keydown", this._onSetupKeyDown, true);
+    window.addEventListener("keyup", this._onSetupKeyUp, true);
+    let last = performance.now();
+    const frame = () => {
+      if (!this.setupOpen) return;
+      if (this.active || !engine.overlayOpen()) { this._closeSetup(); return; }
+      const now = performance.now();
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      const w = window.innerWidth, h = window.innerHeight;
+      engine.overlayDisplay(w, h, 1);
+      this.overlay.render(dt, w, h, window.devicePixelRatio || 1);
+      while (engine.overlayPollAction()) { /* flight-only buttons; nothing to do on the globe */ }
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+    return true;
+  }
+
+  _closeSetup() {
+    this.setupOpen = false;
+    window.removeEventListener("keydown", this._onSetupKeyDown, true);
+    window.removeEventListener("keyup", this._onSetupKeyUp, true);
+    if (!this.active) {
+      this.overlayCanvas.classList.remove("active");
+      const w = window.innerWidth, h = window.innerHeight;
+      this.overlay?.render(0, w, h, window.devicePixelRatio || 1); // clears the canvas
+    }
+  }
+
+  _setupKey(e, down) {
+    if (!this.setupOpen || this.active) return;
+    this._forwardRaw(e, down, this.engine.overlayWantsInput?.());
+    e.stopPropagation(); // keep globe shortcuts (D, T) quiet while the menu is up
   }
 
   _wireButtons() {
