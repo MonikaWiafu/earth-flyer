@@ -113,8 +113,12 @@ jobs:
         working-directory: desktop
         shell: bash
         run: |
-          npm install --no-audit --no-fund
-          npm run dist
+          set -o pipefail
+          npm install --no-audit --no-fund 2>&1 | tee ../package.log
+          npm run dist 2>&1 | tee -a ../package.log || {
+            tail -n 25 ../package.log | sed 's/%/%25/g' | while IFS= read -r line; do echo "::error title=package::$line"; done
+            exit 1
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: earth-flyer-${{ runner.os }}
