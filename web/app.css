@@ -76,6 +76,9 @@ kbd { font: 11px ui-monospace, monospace; padding: 1px 5px; border: 1px solid va
 .tool:hover, .tool[aria-pressed="true"] { background: rgba(127, 127, 127, 0.2); }
 .popover { position: fixed; top: 76px; right: 12px; width: min(300px, calc(100vw - 24px)); padding: 14px; z-index: 11; }
 .popover input[type="range"] { width: 100%; }
+.popover fieldset.plain { border: 0; padding: 0; margin: 4px 0 8px; }
+.popover fieldset.plain:disabled { opacity: 0.5; }
+.popover .check span { margin-left: 2px; }
 
 /* settings */
 .dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-solid); color: var(--text);
@@ -106,7 +109,7 @@ kbd { font: 11px ui-monospace, monospace; padding: 1px 5px; border: 1px solid va
 .hud-keys { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 6px 0 8px; }
 .drone-help { position: fixed; top: 76px; right: 12px; width: min(320px, calc(100vw - 24px)); padding: 12px 14px; z-index: 12; }
 .drone-help p { margin: 6px 0; }
-body.drone .search, body.drone #btn-sky, body.drone #btn-home { display: none; }
+body.drone .search, body.drone #btn-sky, body.drone #btn-home, body.drone #btn-buildings, body.drone #btn-terrain { display: none; }
 
 .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); padding: 8px 14px; border-radius: 10px;
   background: var(--panel-solid); border: 1px solid var(--line); box-shadow: var(--shadow); z-index: 60; max-width: calc(100vw - 32px); }
@@ -116,6 +119,6 @@ body.drone .coords { display: none; }
 @media (max-width: 640px) {
   .tool span { display: none; }
   .tool { min-width: 40px; }
-  .search { width: calc(100vw - 250px); min-width: 140px; }
+  .search { width: calc(100vw - 290px); min-width: 130px; }
   .popover, .drone-help { top: 64px; }
 }

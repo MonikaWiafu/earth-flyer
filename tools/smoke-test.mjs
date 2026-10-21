@@ -40,6 +40,34 @@ const terrain = await page.evaluate(async () => {
   } catch (e) { return { error: String(e) }; }
 });
 
+// Free 3D buildings (default: satellite-textured): Times Square, real OpenFreeMap data.
+await page.evaluate(() => window.efViewer.camera.setView({
+  destination: Cesium.Cartesian3.fromDegrees(-73.9855, 40.7500, 900),
+  orientation: { heading: 0, pitch: Cesium.Math.toRadians(-30), roll: 0 },
+}));
+const buildings = await page.evaluate(() => new Promise((resolve) => {
+  const t0 = performance.now();
+  const check = () => {
+    const L = window.efBuildings;
+    const tiles = [...L.tiles.values()];
+    const count = tiles.reduce((n, t) => n + (t.buildings ? t.buildings.length : 0), 0);
+    const meshes = tiles.reduce((n, t) => n + t.prims.length, 0);
+    const withMosaic = tiles.filter((t) => t.mosaic);
+    let textureLooksReal = null;
+    if (withMosaic.length) {
+      const c = withMosaic[0].mosaic, ctx = c.getContext("2d");
+      const px = ctx.getImageData(c.width / 2, c.height / 2, 1, 1).data;
+      textureLooksReal = !(px[0] === 0x8a && px[1] === 0x8a && px[2] === 0x84); // not the grey placeholder
+    }
+    if ((count > 200 && meshes > 0 && withMosaic.length) || performance.now() - t0 > 45000)
+      resolve({ mode: L.mode, buildings: count, meshes, tilesWithTexture: withMosaic.length, textureLooksReal });
+    else setTimeout(check, 1000);
+  };
+  check();
+}));
+await page.waitForTimeout(2000);
+await page.screenshot({ path: `${out}/0-buildings-times-square.png` });
+
 // Jump close to the ground (Golden Gate area) and enter drone mode.
 await page.evaluate(() => {
   const v = window.efViewer;
@@ -87,7 +115,7 @@ await page.waitForTimeout(500);
 const exited = await page.evaluate(() => !document.body.classList.contains("drone"));
 
 const realErrors = errors.filter((e) => !/ERR_TUNNEL|ERR_NAME|Failed to load resource/.test(e) || /wasm/.test(e));
-console.log(JSON.stringify({ hud, cam, exited, engine, terrain, setupMenu, errors: realErrors.slice(0, 25) }, null, 2));
+console.log(JSON.stringify({ hud, cam, exited, engine, terrain, setupMenu, buildings, errors: realErrors.slice(0, 25) }, null, 2));
 await browser.close();
 
 if (process.env.EXPECT_LIBFPV) {
@@ -98,6 +126,8 @@ if (process.env.EXPECT_LIBFPV) {
   if (!exited) fails.push("could not exit drone mode");
   if (engine.real && !(setupMenu.open && setupMenu.drawCommands > 0)) fails.push(`drone setup menu did not render over the globe: ${JSON.stringify(setupMenu)}`);
   if (engine.real && !setupMenu.closedWithF8) fails.push("F8 did not close the drone setup menu");
+  if (!(buildings.buildings > 200 && buildings.meshes > 0)) fails.push(`free 3D buildings did not load: ${JSON.stringify(buildings)}`);
+  if (buildings.textureLooksReal === false) fails.push("building texture mosaic stayed grey (satellite tiles did not load)");
   if (!terrain.on) fails.push("free 3D terrain provider is not active");
   if (!(terrain.rainierSummitM > 3800 && terrain.rainierSummitM < 4600)) fails.push(`terrain height check failed: ${JSON.stringify(terrain)}`);
   if (realErrors.some((e) => e.startsWith("pageerror"))) fails.push("page errors: " + realErrors.join(" | "));

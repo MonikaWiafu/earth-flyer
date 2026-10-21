@@ -21,6 +21,7 @@ export function createViewer(containerId) {
     selectionIndicator: false,
     shadows: false,
     msaaSamples: 4,
+    scene3DOnly: true, // no 2D/Columbus views: skips projecting building meshes
   });
   const scene = viewer.scene;
   scene.globe.baseColor = Cesium.Color.fromCssColorString("#1d2b44");

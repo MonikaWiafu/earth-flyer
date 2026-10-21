@@ -15,6 +15,13 @@ both from the same code.
   Esri satellite imagery with no key, draped over **free 3D terrain**
   (AWS Terrain Tiles). The **Terrain** button or `T` turns the terrain on
   and off.
+- **Free 3D buildings (no key):** OpenStreetMap buildings from OpenFreeMap,
+  extruded on the terrain. Choose from the **Buildings** menu:
+  - **3D over 2D map:** plain buildings standing on the satellite map.
+  - **2D over 3D buildings** (default): the satellite photo is projected onto
+    the buildings. Roofs show the real roof; walls show either the roof-edge
+    pixels stretched down or the building's roof colour, shaded.
+  The drone collides with buildings, and spawns on a roof if you start over one.
 - **Search and fly-to:** a Google Earth-style swoop to any place or to
   `lat, lon` coordinates. Search uses Google in Google mode (a condition of
   the 3D tiles terms) and OpenStreetMap Nominatim otherwise.
@@ -107,6 +114,9 @@ only; the map data has its own terms:
   [Google Maps Platform Terms](https://cloud.google.com/maps-platform/terms).
 - Free mode imagery: © Esri, Maxar, Earthstar Geographics. Search ©
   OpenStreetMap contributors (Nominatim).
+- Free 3D buildings: [OpenFreeMap](https://openfreemap.org) vector tiles,
+  © [OpenMapTiles](https://www.openmaptiles.org/), data ©
+  [OpenStreetMap contributors](https://www.openstreetmap.org/copyright) (ODbL).
 - Free 3D terrain: [Mapzen Terrain Tiles on AWS](https://registry.opendata.aws/terrain-tiles/)
   (SRTM, GMTED, NED, ETOPO1 and other public sources).
 - [CesiumJS](https://github.com/CesiumGS/cesium) (Apache-2.0) and

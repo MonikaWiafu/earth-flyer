@@ -57,7 +57,11 @@ async function heightmap(x, y, level) {
   const span = 1 << shift;
   const ox = (x - ax * span) / span, oy = (y - ay * span) / span;
   const src = await fetchTerrarium(z, ax, ay);
-  if (!src) return undefined; // Cesium keeps drawing the parent tile
+  if (!src) {
+    // Download failed. Deep tiles fall back to their parent; the top levels have
+    // no parent, so they become flat instead of taking the whole globe down.
+    return level <= 3 ? new Float32Array(SIZE * SIZE) : undefined;
+  }
   const out = new Float32Array(SIZE * SIZE);
   for (let j = 0; j < SIZE; j++) {
     const v = oy + (j / (SIZE - 1)) / span;

@@ -6,6 +6,8 @@ import { wireSearch } from "./search.js";
 import { wireSky } from "./sky.js";
 import { DroneMode } from "./drone/drone-mode.js";
 import { wireKeymapEditor } from "./keymap-editor.js";
+import { BuildingLayer } from "./buildings/buildings.js";
+import { wireBuildingsUI } from "./buildings/buildings-ui.js";
 
 const GUIDE_URL = "https://github.com/MonikaWiafu/earth-flyer/blob/main/docs/GOOGLE_API_KEY.md";
 
@@ -31,6 +33,10 @@ async function main() {
   const viewer = createViewer("globe");
   window.efViewer = viewer; // handy in devtools
 
+  const buildings = new BuildingLayer(viewer);
+  window.efBuildings = buildings; // handy in devtools
+  let buildingsUI = null;
+
   let mode = effectiveMode(settings);
   async function loadSource() {
     mode = effectiveMode(settings);
@@ -46,6 +52,10 @@ async function main() {
     }
     search.refresh();
     syncTerrainButton();
+    buildings.setHighDetail(!!settings.highDetail);
+    buildings.setAvailable(mode !== "google"); // Google's tiles already contain buildings
+    buildings.reload();                          // terrain under them may have changed
+    buildingsUI?.sync();
   }
 
   // Terrain toggle (free mode only; Google's 3D tiles already include terrain).
@@ -63,6 +73,7 @@ async function main() {
     saveSettings(settings);
     setFreeTerrain(viewer, settings.terrain);
     syncTerrainButton();
+    buildings.reload(); // re-seat the buildings on (or off) the terrain
     toast(settings.terrain ? "3D terrain on" : "3D terrain off (flat globe)", 1500);
   }
   terrainBtn.addEventListener("click", toggleTerrain);
@@ -76,7 +87,8 @@ async function main() {
   wireSky(viewer);
   wireCoords(viewer);
 
-  const drone = new DroneMode(viewer, { toast, settings, saveSettings });
+  buildingsUI = wireBuildingsUI({ layer: buildings, settings, save: saveSettings, toast });
+  const drone = new DroneMode(viewer, { toast, settings, saveSettings, buildings });
   window.efDrone = drone; // handy in devtools
   document.getElementById("btn-drone").addEventListener("click", () => (drone.active ? drone.exit() : drone.enter()));
   document.getElementById("btn-home").addEventListener("click", () => flyHome(viewer));

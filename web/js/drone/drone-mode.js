@@ -15,8 +15,9 @@ const CAMS = ["fpv", "chase", "los"];
 const CAM_LABEL = { fpv: "FPV", chase: "Chase", los: "Line of sight" };
 
 export class DroneMode {
-  constructor(viewer, { toast, settings, saveSettings }) {
+  constructor(viewer, { toast, settings, saveSettings, buildings }) {
     this.viewer = viewer;
+    this.buildings = buildings || null;
     this.toast = toast;
     this.settings = settings;
     this.saveSettings = saveSettings;
@@ -88,11 +89,20 @@ export class DroneMode {
     const engine = await this._engine();
     this._createModel();
     const carto = Cesium.Cartographic.fromCartesian(hit);
-    const h = await sampleGroundHeight(viewer, carto, this.modelEntities);
+    let h = await sampleGroundHeight(viewer, carto, this.modelEntities);
+    // Inside a building's footprint? Start on its roof instead of inside it.
+    const roof = this.buildings?.roofHeightAt(Cesium.Math.toDegrees(carto.longitude), Cesium.Math.toDegrees(carto.latitude));
+    if (roof !== undefined && roof > h) h = roof;
     const origin = Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, h);
     this.frame = new EnuFrame(origin);
 
-    this.collision = new CollisionGrid(viewer, this.frame, engine, { exclude: this.modelEntities });
+    this.collision = new CollisionGrid(viewer, this.frame, engine, { exclude: this.modelEntities, buildings: this.buildings });
+    this.lastPos = [0, 0, 0];
+    if (this.buildings) {
+      this.buildings.setFocus(() => this.frame.toCarto(this.lastPos[0], this.lastPos[1], 0));
+      // New buildings nearby: rebuild the collision mesh on the next frame.
+      this._offBuildings = this.buildings.onDataChanged(() => { if (this.collision) this.collision.center = null; });
+    }
     this.collision.loadFlat(0);
     if (engine.setHeightSampler) engine.setHeightSampler((x, y) => this.collision.heightAt(x, y));
     this.yaw = camera.heading; // drone faces where you were looking
@@ -129,6 +139,9 @@ export class DroneMode {
     window.removeEventListener("keyup", this._onKeyUp, true);
     this.audio?.stop();
     this.engine?.despawn();
+    this.buildings?.setFocus(null);
+    this._offBuildings?.();
+    this._offBuildings = null;
     if (this.engine?.overlaySetOpen) this.engine.overlaySetOpen(false);
     this._removeModel();
     this.osd.clear();
@@ -163,6 +176,7 @@ export class DroneMode {
     this.last = now;
     const engine = this.engine;
     const s = engine.tick(dt);
+    this.lastPos = s.pos;
 
     if (this.collision.needsRefresh(s.pos[0], s.pos[1])) this.collision.refreshAround(s.pos[0], s.pos[1]);
 

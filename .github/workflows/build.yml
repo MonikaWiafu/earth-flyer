@@ -79,7 +79,13 @@ jobs:
             tail -n 30 smoke.log | sed 's/%/%25/g' | while IFS= read -r line; do echo "::error title=smoke::$line"; done
             exit 1
           }
-          grep -o '"name": "[^"]*"\|"version": "[^"]*"\|"simTimeAdvanced": [a-z]*\|"osdPixels": [0-9]*\|"rainierSummitM": [0-9a-z]*\|"drawCommands": [0-9]*\|"closedWithF8": [a-z]*' smoke.log | sed 's/^/::notice title=smoke::/'
+          grep -o '"name": "[^"]*"\|"version": "[^"]*"\|"simTimeAdvanced": [a-z]*\|"osdPixels": [0-9]*\|"rainierSummitM": [0-9a-z]*\|"drawCommands": [0-9]*\|"closedWithF8": [a-z]*\|"buildings": [0-9]*\|"tilesWithTexture": [0-9]*\|"textureLooksReal": [a-z]*' smoke.log | sed 's/^/::notice title=smoke::/'
+      - name: Buildings test (offline, synthetic tiles)
+        run: |
+          node tools/buildings-test.mjs http://localhost:8765/ shots 2>&1 | tee buildings.log || {
+            echo "::error title=buildings::$(tail -n 25 buildings.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+            exit 1
+          }
       - uses: actions/upload-artifact@v4
         if: always()
         with:

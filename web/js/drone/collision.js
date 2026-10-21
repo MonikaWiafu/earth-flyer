@@ -5,7 +5,8 @@
 import { sampleFreeTerrain } from "../terrain.js";
 
 export class CollisionGrid {
-  constructor(viewer, frame, engine, { size = 160, cells = 32, exclude = [] } = {}) {
+  constructor(viewer, frame, engine, { size = 160, cells = 32, exclude = [], buildings = null } = {}) {
+    this.buildings = buildings;
     this.viewer = viewer;
     this.frame = frame;
     this.engine = engine;
@@ -81,7 +82,28 @@ export class CollisionGrid {
         }
       // Skirt: everything outside the grid falls back to the mean height.
       this.fallbackZ = zs.reduce((m, v) => m + v, 0) / zs.length;
-      this.engine.loadMesh(pos, idx, null);
+
+      // Buildings: real walls and roofs for LibFPV; roof heights for the basic drone.
+      let meshPos = pos, meshIdx = idx;
+      const bt = this.buildings?.trianglesNear(this.frame, x, y, this.size / 2 + 20);
+      if (bt) {
+        meshPos = new Float32Array(pos.length + bt.positions.length);
+        meshPos.set(pos);
+        meshPos.set(bt.positions, pos.length);
+        meshIdx = new Uint32Array(idx.length + bt.indices.length);
+        meshIdx.set(idx);
+        const off = pos.length / 3;
+        for (let k = 0; k < bt.indices.length; k++) meshIdx[idx.length + k] = bt.indices[k] + off;
+        for (let k = 0; k < cartos.length; k++) {
+          const roof = this.buildings.roofHeightAt(Cesium.Math.toDegrees(cartos[k].longitude), Cesium.Math.toDegrees(cartos[k].latitude));
+          if (roof !== undefined) {
+            const c = cartos[k];
+            const p = this.frame.toLocalPoint(Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, roof));
+            if (p[2] > zs[k]) zs[k] = p[2];
+          }
+        }
+      }
+      this.engine.loadMesh(meshPos, meshIdx, null);
       this.z = zs;
       this.origin = [ox, oy];
       this.center = [x, y];

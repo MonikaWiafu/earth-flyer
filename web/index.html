@@ -68,6 +68,10 @@
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M2 19l6.5-10 4 6 2.5-3.5L22 19z"/><path d="M8.5 9l1.6 2.4"/></g></svg>
       <span>Terrain</span>
     </button>
+    <button id="btn-buildings" class="tool" title="3D buildings">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 21V9l6-3v15M9 21V4l8 3v14M17 21v-9l4 2v7M2 21h20"/><path d="M12 9h2M12 12h2M12 15h2"/></g></svg>
+      <span>Buildings</span>
+    </button>
     <button id="btn-sky" class="tool" title="Sun, time and atmosphere">
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></g></svg>
       <span>Sky</span>
@@ -96,6 +100,23 @@
     <label class="check"><input id="sky-stars" type="checkbox" checked> Stars, sun and moon</label>
     <label class="check"><input id="sky-fog" type="checkbox" checked> Distance fog</label>
     <p class="muted small">Google's 3D cities have daylight baked into their photos, so night darkens the sky and the plain globe but not the buildings themselves.</p>
+  </section>
+
+  <!-- Buildings panel -->
+  <section id="buildings-panel" class="panel popover" hidden aria-label="3D buildings">
+    <h2>3D buildings</h2>
+    <fieldset class="plain">
+      <label class="check"><input type="radio" name="bmode" value="off"> Off</label>
+      <label class="check"><input type="radio" name="bmode" value="plain"> 3D over 2D map <span class="muted small">(plain buildings on the satellite map)</span></label>
+      <label class="check"><input type="radio" name="bmode" value="textured"> 2D over 3D buildings <span class="muted small">(satellite photo draped on the buildings)</span></label>
+    </fieldset>
+    <fieldset class="plain" id="bwalls-set">
+      <legend class="small muted">Walls (2D over 3D)</legend>
+      <label class="check"><input type="radio" name="bwalls" value="projected"> Projected from the photo (streaks)</label>
+      <label class="check"><input type="radio" name="bwalls" value="roof"> Roof colour, shaded</label>
+    </fieldset>
+    <p id="buildings-status" class="small muted"></p>
+    <p class="muted small">From OpenStreetMap. Buildings load when you're within about 5 km of the ground. Heights are estimated where OSM has none, and coverage varies by area.</p>
   </section>
 
   <!-- Settings dialog -->

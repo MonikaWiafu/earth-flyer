@@ -7,6 +7,8 @@ const defaults = {
   mode: "auto",     // "google" | "free" | "auto" (google when a key exists)
   highDetail: false,
   terrain: true,    // free 3D terrain under the free imagery
+  buildings: "textured", // "off" | "plain" (3D over 2D) | "textured" (2D over 3D)
+  buildingWalls: "projected", // "projected" | "roof"
   helpSeen: false,
 };
 
