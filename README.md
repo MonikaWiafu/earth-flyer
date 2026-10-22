@@ -11,6 +11,9 @@ both from the same code.
 
 ## Features
 
+- **Google 3D cities without a Google key:** paste a free **Cesium ion token**
+  ([guide](docs/CESIUM_ION_TOKEN.md)) and Earth Flyer streams Google
+  Photorealistic 3D Tiles through Cesium ion (1,000 loads a month free).
 - **Globe:** Google Photorealistic 3D Tiles with your own API key, or free
   Esri satellite imagery with no key, draped over **free 3D terrain**
   (AWS Terrain Tiles). The **Terrain** button or `T` turns the terrain on
@@ -34,14 +37,17 @@ both from the same code.
 
 ## Getting started
 
-1. Get a Google API key: [docs/GOOGLE_API_KEY.md](docs/GOOGLE_API_KEY.md).
-   This is optional, but the 3D cities need it.
+1. Optional, for Google's 3D cities: get a free Cesium ion token
+   ([docs/CESIUM_ION_TOKEN.md](docs/CESIUM_ION_TOKEN.md)), or a Google API
+   key ([docs/GOOGLE_API_KEY.md](docs/GOOGLE_API_KEY.md)). Without either,
+   you get free imagery, terrain and OpenStreetMap buildings.
 2. Run it:
    - **Web:** open the GitHub Pages site once the **Build** workflow has
      deployed it.
    - **Desktop:** download the installer for your OS from the latest
      workflow run (Actions → Build → Artifacts) or from Releases.
-3. Click ⚙ **Settings**, paste your key, then click **Save**.
+3. Click ⚙ **Settings**, paste your token or key, choose the map source,
+   then click **Save**.
 
 ### Controls
 

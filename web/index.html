@@ -123,7 +123,15 @@
   <dialog id="settings" class="dialog" aria-labelledby="settings-title">
     <form method="dialog" id="settings-form">
       <h2 id="settings-title">Settings</h2>
-      <label for="set-key">Google Maps Platform API key</label>
+      <label for="set-ion">Cesium ion token <span class="muted small">(free: Google 3D cities without a Google key)</span></label>
+      <input id="set-ion" type="password" placeholder="eyJ…" spellcheck="false" autocomplete="off">
+      <p class="muted small">Needs the <b>assets:read</b> and <b>geocode</b> scopes. Stored only in this browser/app. <a href="https://github.com/MonikaWiafu/earth-flyer/blob/main/docs/CESIUM_ION_TOKEN.md" target="_blank" rel="noopener">How to get a token</a></p>
+      <div class="row gap">
+        <button type="button" id="set-ion-test" class="btn small">Test token</button>
+        <span id="set-ion-test-out" class="small"></span>
+      </div>
+      <hr class="sep">
+      <label for="set-key">Google Maps Platform API key <span class="muted small">(optional)</span></label>
       <input id="set-key" type="password" placeholder="AIza…" spellcheck="false" autocomplete="off">
       <p class="muted small">Needs the <b>Map Tiles API</b> (3D cities) and <b>Geocoding API</b> (search) enabled. Stored only in this browser/app. <a href="https://github.com/" id="key-guide-link" target="_blank" rel="noopener">How to get a key</a></p>
       <div class="row gap">
@@ -132,7 +140,8 @@
       </div>
       <fieldset>
         <legend>Map source</legend>
-        <label class="check"><input type="radio" name="mode" value="google"> Google Photorealistic 3D (needs key)</label>
+        <label class="check"><input type="radio" name="mode" value="ion"> Google 3D via Cesium ion (needs Cesium token)</label>
+        <label class="check"><input type="radio" name="mode" value="google"> Google 3D direct (needs Google key)</label>
         <label class="check"><input type="radio" name="mode" value="free"> Free satellite imagery + 3D terrain (no key)</label>
       </fieldset>
       <label class="check"><input id="set-quality" type="checkbox"> High detail (slower, sharper)</label>

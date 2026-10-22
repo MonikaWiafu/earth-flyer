@@ -3,15 +3,16 @@
 /* global Cesium */
 import { escapeHtml } from "./settings.js";
 
-export function wireSearch({ getMode, getKey, onPick }) {
+export function wireSearch({ getMode, getKey, getIonToken, getScene, onPick }) {
   const form = document.getElementById("search-form");
   const input = document.getElementById("search-input");
   const list = document.getElementById("search-results");
   const source = document.getElementById("search-source");
-  let googleService = null, googleKey = null;
+  let googleService = null, googleKey = null, ionService = null, ionToken = null;
 
   function setSource() {
-    source.textContent = getMode() === "google" ? "Search by Google" : "Search by OpenStreetMap Nominatim";
+    const m = getMode();
+    source.textContent = m === "google" ? "Search by Google" : m === "ion" ? "Search by Google (via Cesium ion)" : "Search by OpenStreetMap Nominatim";
   }
   setSource();
 
@@ -22,6 +23,18 @@ export function wireSearch({ getMode, getKey, onPick }) {
       const lat = +m[1], lon = +m[2];
       if (Math.abs(lat) <= 90 && Math.abs(lon) <= 180)
         return [{ displayName: `${lat}, ${lon}`, destination: Cesium.Cartesian3.fromDegrees(lon, lat, 0) }];
+    }
+    if (getMode() === "ion") {
+      // Google's 3D tiles require Google's geocoder; Cesium ion provides it on the same token.
+      if (!ionService || ionToken !== getIonToken()) {
+        ionToken = getIonToken();
+        ionService = new Cesium.IonGeocoderService({
+          scene: getScene(),
+          accessToken: ionToken,
+          geocodeProviderType: Cesium.IonGeocodeProviderType.GOOGLE,
+        });
+      }
+      return ionService.geocode(q);
     }
     if (getMode() === "google") {
       if (!googleService || googleKey !== getKey()) {

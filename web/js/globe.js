@@ -59,10 +59,13 @@ export async function applyMapSource(viewer, mode, settings) {
   }
   viewer.imageryLayers.removeAll();
 
-  if (mode === "google") {
-    Cesium.GoogleMaps.defaultApiKey = settings.apiKey;
+  if (mode === "google" || mode === "ion") {
+    // "google": your own Maps Platform key. "ion": no Google key - CesiumJS then
+    // fetches the same tileset (ion asset 2275207) through Cesium ion with your token.
+    Cesium.GoogleMaps.defaultApiKey = mode === "google" ? settings.apiKey : undefined;
+    if (mode === "ion") Cesium.Ion.defaultAccessToken = settings.ionToken;
     const tileset = await Cesium.createGooglePhotorealistic3DTileset(
-      { key: settings.apiKey, onlyUsingWithGoogleGeocoder: true },
+      mode === "google" ? { key: settings.apiKey, onlyUsingWithGoogleGeocoder: true } : { onlyUsingWithGoogleGeocoder: true },
       {
         maximumScreenSpaceError: settings.highDetail ? 8 : 16,
         skipLevelOfDetail: true,

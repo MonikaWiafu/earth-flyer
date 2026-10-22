@@ -44,8 +44,10 @@ async function main() {
       await applyMapSource(viewer, mode, settings);
     } catch (e) {
       console.error(e);
-      if (mode === "google") {
-        toast("Google 3D Tiles failed to load (check the API key in Settings). Showing free imagery.", 7000);
+      if (mode !== "free") {
+        toast(mode === "ion"
+          ? "Google 3D via Cesium ion failed to load (check the token in Settings, or this month's free limit). Showing free imagery."
+          : "Google 3D Tiles failed to load (check the API key in Settings). Showing free imagery.", 8000);
         mode = "free";
         await applyMapSource(viewer, mode, settings);
       }
@@ -53,7 +55,7 @@ async function main() {
     search.refresh();
     syncTerrainButton();
     buildings.setHighDetail(!!settings.highDetail);
-    buildings.setAvailable(mode !== "google"); // Google's tiles already contain buildings
+    buildings.setAvailable(mode === "free"); // Google's tiles already contain buildings
     buildings.reload();                          // terrain under them may have changed
     buildingsUI?.sync();
   }
@@ -61,14 +63,14 @@ async function main() {
   // Terrain toggle (free mode only; Google's 3D tiles already include terrain).
   const terrainBtn = document.getElementById("btn-terrain");
   function syncTerrainButton() {
-    const google = mode === "google";
+    const google = mode !== "free"; // both Google modes carry their own terrain
     terrainBtn.disabled = google;
     terrainBtn.style.opacity = google ? "0.45" : "";
     terrainBtn.title = google ? "Google 3D tiles already include terrain" : "3D terrain on/off (T)";
     terrainBtn.setAttribute("aria-pressed", String(!google && settings.terrain !== false));
   }
   function toggleTerrain() {
-    if (mode === "google" || drone.active) return;
+    if (mode !== "free" || drone.active) return;
     settings.terrain = settings.terrain === false;
     saveSettings(settings);
     setFreeTerrain(viewer, settings.terrain);
@@ -81,6 +83,8 @@ async function main() {
   const search = wireSearch({
     getMode: () => mode,
     getKey: () => settings.apiKey,
+    getIonToken: () => settings.ionToken,
+    getScene: () => viewer.scene,
     onPick: (place) => swoopTo(viewer, place),
   });
   wireSettingsDialog({ settings, onSave: () => loadSource(), guideUrl: GUIDE_URL });
@@ -112,7 +116,7 @@ async function main() {
   await loadSource();
   document.getElementById("boot").classList.add("done");
   if (mode === "free") {
-    toast("Free imagery mode. Add a Google API key in Settings for photorealistic 3D cities.", 6000);
+    toast("Free imagery mode. Add a free Cesium ion token in Settings for Google's photorealistic 3D cities.", 6000);
   }
 }
 
