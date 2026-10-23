@@ -50,6 +50,9 @@ class LibFPVEngine {
   repair() { this.M._ef_repair(); }
   despawn() { this.M._ef_despawn(); }
   setPaused(p) { this.M._ef_set_paused(p ? 1 : 0); }
+  // Earth Flyer options (patches/libfpv-earthflyer.patch)
+  setInfiniteBattery(on) { this.M._ef_set_infinite_battery?.(on ? 1 : 0); }
+  setUnlimitedVideo(on) { this.M._ef_set_unlimited_video?.(on ? 1 : 0); }
 
   tick(dt) {
     const M = this.M;

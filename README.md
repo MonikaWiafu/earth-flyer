@@ -60,6 +60,7 @@ both from the same code.
 | Anywhere | `F8` or ⚙ Settings → **Open drone setup** | LibFPV setup menu: radio/gamepad wizard and mapping, rates, modes, quad presets, OSD |
 | Drone | `W`/`S`, `A`/`D`, arrow keys, `Enter` | Keyboard fallback: throttle, yaw, pitch/roll, arm |
 | Drone | `C` / `R` / `X` | Change camera / respawn / exit |
+| Settings | **Drone controls** | Realistic video signal on/off (default off: no range limit, no static), infinite battery (default on), world scale 0.1×–10× |
 | Settings | **Drone controls → Keyboard keys** | Rebind every keyboard flying key and the camera/respawn/exit keys |
 | Desktop | `F11` / `F12` | Fullscreen / developer tools |
 
@@ -77,8 +78,15 @@ build LibFPV for the browser you need [Emscripten](https://emscripten.org)
 4.0 or newer:
 
 ```sh
+git -C third_party/libfpv apply ../../patches/libfpv-earthflyer.patch   # infinite battery, unlimited video range
 emcmake cmake -S native -B build/wasm && cmake --build build/wasm -j
 ```
+
+`patches/libfpv-earthflyer.patch` adds two small options to LibFPV:
+`fpv_battery_set_infinite` keeps the pack full every simulation step (voltage
+still sags under load), and `fpv_video_set_unlimited_range` keeps the video
+link clean at any distance. `native/test_glue.c` checks both against the real
+library.
 
 Desktop: `cd desktop && npm install && npm start` runs it.
 `npm run dist` packages it.

@@ -312,6 +312,10 @@ EF_API void ef_audio_volume(float v) { fpv_audio_set_volume(v); }
 /* ---- misc ----------------------------------------------------------------- */
 EF_API void ef_set_paused(int p) { fpv_set_paused(p); }
 
+/* Earth Flyer options (patches/libfpv-earthflyer.patch adds these to libfpv). */
+EF_API void ef_set_infinite_battery(int on) { fpv_battery_set_infinite(on); }
+EF_API void ef_set_unlimited_video(int on) { fpv_video_set_unlimited_range(on); }
+
 #if defined(__EMSCRIPTEN__)
 int main(void) { return 0; }
 #endif

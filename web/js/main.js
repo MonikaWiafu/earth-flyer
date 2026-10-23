@@ -6,6 +6,7 @@ import { wireSearch } from "./search.js";
 import { wireSky } from "./sky.js";
 import { DroneMode } from "./drone/drone-mode.js";
 import { wireKeymapEditor } from "./keymap-editor.js";
+import { wireDroneOptions } from "./drone-options.js";
 import { BuildingLayer } from "./buildings/buildings.js";
 import { wireBuildingsUI } from "./buildings/buildings-ui.js";
 
@@ -97,6 +98,7 @@ async function main() {
   document.getElementById("btn-drone").addEventListener("click", () => (drone.active ? drone.exit() : drone.enter()));
   document.getElementById("btn-home").addEventListener("click", () => flyHome(viewer));
   wireKeymapEditor({ settings, save: saveSettings, onChange: () => drone.refreshKeymap() });
+  wireDroneOptions({ settings, save: saveSettings, drone, toast });
   document.getElementById("set-drone-setup").addEventListener("click", () => {
     document.getElementById("settings").close("setup");
     drone.openSetup();

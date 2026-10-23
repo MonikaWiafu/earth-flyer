@@ -1,0 +1,94 @@
+diff --git a/include/libfpv.h b/include/libfpv.h
+index 5416008..907a074 100644
+--- a/include/libfpv.h
++++ b/include/libfpv.h
+@@ -658,6 +658,14 @@ FPV_API fpv_result fpv_kamikaze_get_config(fpv_kamikaze_config *config);
+ 
+ FPV_API void fpv_set_paused(int paused);
+ FPV_API int fpv_is_paused(void);
++/* Earth Flyer patch (patches/libfpv-earthflyer.patch in earth-flyer):
++ * infinite battery keeps the pack's capacity full every step (voltage still
++ * sags under load; crash damage is untouched), and unlimited video range
++ * keeps the video link at the VTX's noise floor regardless of distance and
++ * obstacles. Both off by default; safe to call from any thread. */
++FPV_API void fpv_battery_set_infinite(int on);
++FPV_API void fpv_video_set_unlimited_range(int on);
++
+ /* Slow motion / fast forward. 1 = real time, clamped to 0.05..4. */
+ FPV_API void fpv_set_time_scale(float scale);
+ /* FPV_TIMING_MANUAL only: advances the simulation by `seconds`, polling
+diff --git a/src/api.cpp b/src/api.cpp
+index 3ad5191..083e614 100644
+--- a/src/api.cpp
++++ b/src/api.cpp
+@@ -785,6 +785,8 @@ FPV_API fpv_result fpv_gps_set_home(const float position[3]) {
+ 
+ // --- time ------------------------------------------------------------------------
+ 
++FPV_API void fpv_battery_set_infinite(int on) { lib().flight.setInfiniteBattery(on != 0); }        // Earth Flyer patch
++FPV_API void fpv_video_set_unlimited_range(int on) { lib().flight.setUnlimitedVideoRange(on != 0); } // Earth Flyer patch
+ FPV_API void fpv_set_paused(int p) { lib().runner.setPaused(p != 0); }
+ FPV_API int fpv_is_paused(void) { return lib().runner.paused() || lib().runner.autoPaused(); }
+ FPV_API void fpv_set_time_scale(float s) {
+diff --git a/src/sim/flight.cpp b/src/sim/flight.cpp
+index a2f54b1..75f6ff5 100644
+--- a/src/sim/flight.cpp
++++ b/src/sim/flight.cpp
+@@ -445,6 +445,13 @@ void Flight::updateGroundEffect(float out[4]) {
+ }
+ 
+ void Flight::updateVideo() {
++    if (m_unlimitedVideo) {  // Earth Flyer patch: clean link at any range
++        m_videoOcclusion = 0;
++        m_snap.videoNoise = m_preset.vtx.noiseFloor;
++        m_snap.videoBreakup = 0;
++        m_snap.videoSignal = std::clamp(1.0f - m_preset.vtx.noiseFloor, 0.0f, 1.0f);
++        return;
++    }
+     // occlusion between pilot (receiver) and drone (transmitter), 50 Hz
+     if (m_videoTick++ % 20 == 0) {
+         Vec3 rx = m_pilotPos + Vec3{0, 1.5f, 0};
+@@ -480,6 +487,10 @@ void Flight::step(float dt, const float channels[kChannelCount], bool radioLost)
+     std::unique_lock<std::mutex> worldLock(m_world->mutex());
+ 
+     m_simTime += dt;
++    if (m_infiniteBattery && m_active) {  // Earth Flyer patch: never drains
++        SimITL::SimState &bs = SimITL::Sim::getInstance().mSimState;
++        bs.batteryState.batCapacity = bs.stateInit.quadBatCapacityCharged;
++    }
+     // --- inputs for SimITL ----------------------------------------------
+     for (int i = 0; i < kChannelCount; i++) m_input.rcData[i] = std::clamp(channels[i], -1.0f, 1.0f);
+     for (int i = kChannelCount; i < 16; i++) m_input.rcData[i] = -1.0f;  // unused channels
+diff --git a/src/sim/flight.h b/src/sim/flight.h
+index 368865c..c8ab59e 100644
+--- a/src/sim/flight.h
++++ b/src/sim/flight.h
+@@ -4,6 +4,8 @@
+ // SPDX-License-Identifier: GPL-3.0-or-later
+ #pragma once
+ 
++#include <atomic>
++
+ #include <array>
+ #include <cstdint>
+ #include <mutex>
+@@ -99,6 +101,10 @@ public:
+     void setBombInstalled(bool on);
+ #endif
+ 
++    // Earth Flyer patch
++    void setInfiniteBattery(bool on) { m_infiniteBattery = on; }
++    void setUnlimitedVideoRange(bool on) { m_unlimitedVideo = on; }
++
+     double simTime() const { return m_simTime; }
+     Vec3 pilotPosition() const { return m_pilotPos; }
+     // Lowest point of the collision shape below the centre of mass (metres).
+@@ -122,6 +128,8 @@ private:
+     void recordImpact(const Contact &c, float speed, float impulse, int motor);
+     Mat3 worldInvInertia() const;
+ 
++    std::atomic<bool> m_infiniteBattery{false};  // Earth Flyer patch
++    std::atomic<bool> m_unlimitedVideo{false};   // Earth Flyer patch
+     CollisionWorld *m_world = nullptr;
+     bool m_bfReady = false;
+     bool m_active = false;

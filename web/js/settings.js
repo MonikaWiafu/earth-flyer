@@ -10,6 +10,9 @@ const defaults = {
   terrain: true,    // free 3D terrain under the free imagery
   buildings: "textured", // "off" | "plain" (3D over 2D) | "textured" (2D over 3D)
   buildingWalls: "projected", // "projected" | "roof"
+  realisticVideo: false, // range limit + static (off: clean video at any distance)
+  infiniteBattery: true, // battery never drains (still sags under load)
+  worldScale: 1,         // drone size vs world: engine metres = world metres × worldScale
   helpSeen: false,
 };
 

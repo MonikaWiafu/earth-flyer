@@ -10,6 +10,7 @@ import { fpvKeyFromCode, compileKeymap, defaultKeymap, keyLabel } from "./keys.j
 import { OverlayRenderer } from "./overlay-gl.js";
 import { OsdLayer, NoiseLayer, MotorAudio } from "./effects.js";
 import { sampleGroundHeight, fmtDist } from "../globe.js";
+import { scaleEngine } from "./scaled-engine.js";
 
 const CAMS = ["fpv", "chase", "los"];
 const CAM_LABEL = { fpv: "FPV", chase: "Chase", los: "Line of sight" };
@@ -87,6 +88,8 @@ export class DroneMode {
 
     this.toast("Preparing the drone…", 1500);
     const engine = await this._engine();
+    this.applyOptions();
+    this._setScale(engine);
     this._createModel();
     const carto = Cesium.Cartographic.fromCartesian(hit);
     let h = await sampleGroundHeight(viewer, carto, this.modelEntities);
@@ -96,7 +99,9 @@ export class DroneMode {
     const origin = Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, h);
     this.frame = new EnuFrame(origin);
 
-    this.collision = new CollisionGrid(viewer, this.frame, engine, { exclude: this.modelEntities, buildings: this.buildings });
+    this.collision = new CollisionGrid(viewer, this.frame, this.flight, {
+      exclude: this.modelEntities, buildings: this.buildings, size: this._gridSize(),
+    });
     this.lastPos = [0, 0, 0];
     if (this.buildings) {
       this.buildings.setFocus(() => this.frame.toCarto(this.lastPos[0], this.lastPos[1], 0));
@@ -104,9 +109,9 @@ export class DroneMode {
       this._offBuildings = this.buildings.onDataChanged(() => { if (this.collision) this.collision.center = null; });
     }
     this.collision.loadFlat(0);
-    if (engine.setHeightSampler) engine.setHeightSampler((x, y) => this.collision.heightAt(x, y));
+    this.flight.setHeightSampler((x, y) => this.collision.heightAt(x, y));
     this.yaw = camera.heading; // drone faces where you were looking
-    engine.spawn(0, 0, 0.02, this.yaw);
+    this.flight.spawn(0, 0, 0.02 / this.scale, this.yaw);
     this.collision.refreshAround(0, 0);
 
     // Hand the camera over to the drone.
@@ -159,10 +164,40 @@ export class DroneMode {
 
   respawn() {
     if (!this.active) return;
-    this.engine.spawn(0, 0, this.collision.heightAt(0, 0) + 0.02, this.yaw);
+    // A changed world scale takes effect here.
+    if (this._wantedScale() !== this.scale) {
+      this._setScale(this.engine);
+      this.collision.engine = this.flight;
+      this.collision.size = this._gridSize();
+      this.collision.center = null; // rebuild the collision mesh at the new scale
+      this.flight.setHeightSampler((x, y) => this.collision.heightAt(x, y));
+      this._removeModel();
+      this._createModel();
+      this.collision.exclude = this.modelEntities;
+    }
+    this.flight.spawn(0, 0, this.collision.heightAt(0, 0) + 0.02 / this.scale, this.yaw);
     this.engine.repair?.();
-    this.toast("Respawned at the start point", 1500);
+    this.toast(this.scale === 1 ? "Respawned at the start point" : `Respawned · world scale ${+this.scale.toPrecision(2)}×`, 1500);
   }
+
+  // Settings → Drone controls options; safe to call any time.
+  applyOptions() {
+    const e = this.engine;
+    if (!e) return;
+    e.setInfiniteBattery?.(this.settings.infiniteBattery !== false);
+    e.setUnlimitedVideo?.(!this.settings.realisticVideo);
+  }
+
+  _wantedScale() {
+    const k = Number(this.settings.worldScale) || 1;
+    return Math.min(10, Math.max(0.1, k));
+  }
+  _setScale(engine) {
+    this.scale = this._wantedScale();
+    this.flight = scaleEngine(engine, this.scale);
+  }
+  // Collision area in world metres: a "giant" drone covers ground fast, so give it more.
+  _gridSize() { return 160 * Math.max(1, 1 / this.scale); }
 
   _setCam(i) {
     this.camIndex = (i + CAMS.length) % CAMS.length;
@@ -175,7 +210,7 @@ export class DroneMode {
     const dt = Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
     const engine = this.engine;
-    const s = engine.tick(dt);
+    const s = this.flight.tick(dt);
     this.lastPos = s.pos;
 
     if (this.collision.needsRefresh(s.pos[0], s.pos[1])) this.collision.refreshAround(s.pos[0], s.pos[1]);
@@ -187,7 +222,8 @@ export class DroneMode {
     const fpv = camName === "fpv";
     const osdOff = (s.flags & FLAGS.OSD_DISABLED) !== 0;
     this.osd.update(engine, s, fpv && engine.real && !osdOff);
-    this.noise.update(fpv ? s.noise : 0, fpv ? s.breakup : 0);
+    const realistic = !!this.settings.realisticVideo;
+    this.noise.update(fpv && realistic ? s.noise : 0, fpv && realistic ? s.breakup : 0);
 
     if (this.overlay) {
       const open = engine.overlayOpen();
@@ -219,6 +255,7 @@ export class DroneMode {
       ];
       if (engine.real && s.battery.volts) lines.push(`Battery ${s.battery.volts.toFixed(2)} V (${s.battery.cell.toFixed(2)} V/cell) · ${Math.round(s.battery.mah)} mAh`);
       if (!armed && s.armingText) lines.push(`Won't arm: ${s.armingText}`);
+      if (this.scale !== 1) lines.push(`World scale ${+this.scale.toPrecision(2)}× · speed is drone-relative, height is real`);
       this.hud.status.innerHTML = lines.map((l) => `<div>${l.replace(/</g, "&lt;")}</div>`).join("");
     }
   }
@@ -282,6 +319,7 @@ export class DroneMode {
       this.toast("The drone setup menu needs the LibFPV build, which didn't load here. Keyboard keys can still be changed under Keyboard keys.", 6000);
       return false;
     }
+    this.applyOptions();
     engine.overlaySetOpen(true);
     this.setupOpen = true;
     this.overlayCanvas.classList.add("active");
@@ -347,20 +385,22 @@ export class DroneMode {
     const ents = this.viewer.entities;
     const dark = Cesium.Color.fromCssColorString("#1b1f27");
     const accent = Cesium.Color.fromCssColorString("#ff7a1a");
+    const m = 1 / (this.scale || 1); // the drone's size in world metres
+    this._modelScale = m;
     this._pose = { pos: new Cesium.Cartesian3(), q: new Cesium.Quaternion() };
     const pose = this._pose;
     const body = ents.add({
       position: new Cesium.CallbackProperty(() => pose.pos, false),
       orientation: new Cesium.CallbackProperty(() => pose.q, false),
-      box: { dimensions: new Cesium.Cartesian3(0.09, 0.14, 0.04), material: accent },
+      box: { dimensions: new Cesium.Cartesian3(0.09 * m, 0.14 * m, 0.04 * m), material: accent },
       show: false,
     });
-    const arms = [[0.09, 0.09], [-0.09, 0.09], [0.09, -0.09], [-0.09, -0.09]];
+    const arms = [[0.09, 0.09], [-0.09, 0.09], [0.09, -0.09], [-0.09, -0.09]].map(([x, y]) => [x * m, y * m]);
     this._propPos = arms.map(() => new Cesium.Cartesian3());
     const props = arms.map((_, i) => ents.add({
       position: new Cesium.CallbackProperty(() => this._propPos[i], false),
       orientation: new Cesium.CallbackProperty(() => pose.q, false),
-      cylinder: { length: 0.012, topRadius: 0.065, bottomRadius: 0.065, material: dark.withAlpha(0.75) },
+      cylinder: { length: 0.012 * m, topRadius: 0.065 * m, bottomRadius: 0.065 * m, material: dark.withAlpha(0.75) },
       show: false,
     }));
     this._arms = arms;
@@ -374,7 +414,7 @@ export class DroneMode {
     this.frame.orientation(s.rot, this._pose.q);
     const rot = Cesium.Matrix3.fromQuaternion(this._pose.q);
     this._arms.forEach(([x, y], i) => {
-      const off = Cesium.Matrix3.multiplyByVector(rot, new Cesium.Cartesian3(x, y, 0.025), new Cesium.Cartesian3());
+      const off = Cesium.Matrix3.multiplyByVector(rot, new Cesium.Cartesian3(x, y, 0.025 * this._modelScale), new Cesium.Cartesian3());
       Cesium.Cartesian3.add(this._pose.pos, off, this._propPos[i]);
     });
   }

@@ -149,6 +149,13 @@
         <legend>Drone controls</legend>
         <p class="muted small">Radio and gamepad mapping (setup wizard), rates and feel, modes and quad type are in the LibFPV setup menu. You can also press <kbd>F8</kbd> anytime. Saved on this device.</p>
         <button type="button" id="set-drone-setup" class="btn small">Open drone setup</button>
+        <label class="check"><input id="set-video" type="checkbox"> Realistic video signal <span class="muted small">(range limit and static; off = clean video at any distance)</span></label>
+        <label class="check"><input id="set-battery" type="checkbox"> Infinite battery <span class="muted small">(never runs out; still sags under hard throttle)</span></label>
+        <label for="set-scale" class="row"><span>World scale</span> <output id="set-scale-out" class="small muted"></output></label>
+        <input id="set-scale" type="range" min="-1" max="1" step="0.05" aria-label="World scale" list="scale-ticks">
+        <datalist id="scale-ticks"><option value="-1"></option><option value="0"></option><option value="1"></option></datalist>
+        <div class="row small muted"><span>0.1× giant</span><span>1× real</span><span>10× tiny</span></div>
+        <p class="muted small">World scale changes how big the world is to the drone. It takes effect when you start a flight or respawn.</p>
         <details id="keymap-details">
           <summary>Keyboard keys</summary>
           <p class="muted small">Click a key, then press the new one. Changes save right away.</p>

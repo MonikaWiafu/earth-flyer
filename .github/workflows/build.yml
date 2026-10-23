@@ -24,6 +24,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Apply Earth Flyer patch to libfpv
+        run: git -C third_party/libfpv apply ../../patches/libfpv-earthflyer.patch
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: 6.0.12
@@ -45,6 +47,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Apply Earth Flyer patch to libfpv
+        run: git -C third_party/libfpv apply ../../patches/libfpv-earthflyer.patch
       - name: Build libfpv (native) and run the glue test
         run: |
           sudo apt-get update && sudo apt-get install -y cmake build-essential
