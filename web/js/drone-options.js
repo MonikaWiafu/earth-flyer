@@ -1,4 +1,4 @@
-// Settings → Drone controls: video signal, infinite battery, world scale.
+// Settings → Drone controls: collision, video signal, infinite battery, world scale.
 // Like the keyboard editor, these save immediately (no need to press Save).
 import { scaleLabel } from "./drone/scaled-engine.js";
 
@@ -21,7 +21,18 @@ export function wireDroneOptions({ settings, save, drone, toast }) {
     });
   }
 
+  const collideRadios = [...document.querySelectorAll('input[name="collision"]')];
+  for (const r of collideRadios) {
+    r.addEventListener("change", () => {
+      if (!r.checked) return;
+      settings.collision = r.value;
+      save(settings);
+      drone.applyOptions();
+    });
+  }
+
   function sync() {
+    for (const r of collideRadios) r.checked = r.value === (settings.collision || "full");
     for (const box of invertBoxes) box.checked = !!(settings.invertAxes || {})[box.dataset.axis];
     video.checked = !!settings.realisticVideo;
     battery.checked = settings.infiniteBattery !== false;

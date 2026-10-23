@@ -100,7 +100,7 @@ export class DroneMode {
     this.frame = new EnuFrame(origin);
 
     this.collision = new CollisionGrid(viewer, this.frame, this.flight, {
-      exclude: this.modelEntities, buildings: this.buildings, size: this._gridSize(),
+      exclude: this.modelEntities, buildings: this.buildings, size: this._gridSize(), mode: this.settings.collision || "full",
     });
     this.lastPos = [0, 0, 0];
     if (this.buildings) {
@@ -170,6 +170,7 @@ export class DroneMode {
       this.collision.engine = this.flight;
       this.collision.size = this._gridSize();
       this.collision.center = null; // rebuild the collision mesh at the new scale
+      if (this.collision.mode === "off") this.collision._loadPad();
       this.flight.setHeightSampler((x, y) => this.collision.heightAt(x, y));
       this._removeModel();
       this._createModel();
@@ -188,6 +189,7 @@ export class DroneMode {
     e.setUnlimitedVideo?.(!this.settings.realisticVideo);
     const inv = this.settings.invertAxes || {};
     e.setInverted?.((inv.roll ? 1 : 0) | (inv.pitch ? 2 : 0) | (inv.throttle ? 4 : 0) | (inv.yaw ? 8 : 0));
+    this.collision?.setMode(this.settings.collision || "full");
   }
 
   _wantedScale() {

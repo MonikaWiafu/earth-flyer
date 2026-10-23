@@ -12,6 +12,7 @@ const defaults = {
   buildingWalls: "projected", // "projected" | "roof"
   realisticVideo: false, // range limit + static (off: clean video at any distance)
   infiniteBattery: true, // battery never drains (still sags under load)
+  collision: "full",     // "full" ground + buildings, "ground" terrain only, "off" launch pad only
   worldScale: 1,         // drone size vs world: engine metres = world metres × worldScale
   invertAxes: { roll: false, pitch: false, throttle: false, yaw: false }, // every input source
   helpSeen: false,

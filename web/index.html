@@ -151,6 +151,15 @@
         <button type="button" id="set-drone-setup" class="btn small">Open drone setup</button>
         <label class="check"><input id="set-video" type="checkbox"> Realistic video signal <span class="muted small">(range limit and static; off = clean video at any distance)</span></label>
         <label class="check"><input id="set-battery" type="checkbox"> Infinite battery <span class="muted small">(never runs out; still sags under hard throttle)</span></label>
+        <div class="collide">
+          <span>Collision</span>
+          <div class="row gap">
+            <label class="check"><input type="radio" name="collision" value="full"> Full <span class="muted small">(ground + buildings)</span></label>
+            <label class="check"><input type="radio" name="collision" value="ground"> Ground only</label>
+            <label class="check"><input type="radio" name="collision" value="off"> Off</label>
+          </div>
+          <p class="muted small" style="margin:0">Off: fly through everything; only the launch pad is solid. Press <kbd>R</kbd> to respawn.</p>
+        </div>
         <div class="invert">
           <span>Invert axes <span class="muted small">(radio, gamepad and keyboard)</span></span>
           <div class="row gap">
