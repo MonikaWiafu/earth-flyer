@@ -13,6 +13,7 @@ const defaults = {
   realisticVideo: false, // range limit + static (off: clean video at any distance)
   infiniteBattery: true, // battery never drains (still sags under load)
   worldScale: 1,         // drone size vs world: engine metres = world metres × worldScale
+  invertAxes: { roll: false, pitch: false, throttle: false, yaw: false }, // every input source
   helpSeen: false,
 };
 

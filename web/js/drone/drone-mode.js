@@ -186,6 +186,8 @@ export class DroneMode {
     if (!e) return;
     e.setInfiniteBattery?.(this.settings.infiniteBattery !== false);
     e.setUnlimitedVideo?.(!this.settings.realisticVideo);
+    const inv = this.settings.invertAxes || {};
+    e.setInverted?.((inv.roll ? 1 : 0) | (inv.pitch ? 2 : 0) | (inv.throttle ? 4 : 0) | (inv.yaw ? 8 : 0));
   }
 
   _wantedScale() {

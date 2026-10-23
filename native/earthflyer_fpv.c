@@ -315,6 +315,10 @@ EF_API void ef_set_paused(int p) { fpv_set_paused(p); }
 /* Earth Flyer options (patches/libfpv-earthflyer.patch adds these to libfpv). */
 EF_API void ef_set_infinite_battery(int on) { fpv_battery_set_infinite(on); }
 EF_API void ef_set_unlimited_video(int on) { fpv_video_set_unlimited_range(on); }
+/* Inverted stick axes, bits: 1 roll, 2 pitch, 4 throttle, 8 yaw. */
+EF_API void ef_set_inverted(uint32_t mask) { fpv_input_set_inverted(mask); }
+/* Channel as Betaflight sees it (AETR + AUX, -1..1), from the last tick. */
+EF_API float ef_channel(int i) { return (i >= 0 && i < FPV_CHANNEL_COUNT) ? g_frame.channels[i] : 0.0f; }
 
 #if defined(__EMSCRIPTEN__)
 int main(void) { return 0; }

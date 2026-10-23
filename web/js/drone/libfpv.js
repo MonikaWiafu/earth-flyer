@@ -53,6 +53,8 @@ class LibFPVEngine {
   // Earth Flyer options (patches/libfpv-earthflyer.patch)
   setInfiniteBattery(on) { this.M._ef_set_infinite_battery?.(on ? 1 : 0); }
   setUnlimitedVideo(on) { this.M._ef_set_unlimited_video?.(on ? 1 : 0); }
+  // bits: 1 roll, 2 pitch, 4 throttle, 8 yaw
+  setInverted(mask) { this.M._ef_set_inverted?.(mask >>> 0); }
 
   tick(dt) {
     const M = this.M;

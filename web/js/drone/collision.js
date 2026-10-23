@@ -4,6 +4,20 @@
 /* global Cesium */
 import { sampleFreeTerrain } from "../terrain.js";
 
+// Work that touches many points runs in slices of at most BUDGET_MS per frame,
+// so a collision refresh can never freeze the picture.
+const BUDGET_MS = 3;
+const REFRESH_MAX_AGE_MS = 8000; // re-sample now and then: sharper tiles stream in
+const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
+async function sliced(count, fn) {
+  let i = 0;
+  while (i < count) {
+    const t0 = performance.now();
+    while (i < count && performance.now() - t0 < BUDGET_MS) fn(i++);
+    if (i < count) await nextFrame();
+  }
+}
+
 export class CollisionGrid {
   constructor(viewer, frame, engine, { size = 160, cells = 32, exclude = [], buildings = null } = {}) {
     this.buildings = buildings;
@@ -19,6 +33,7 @@ export class CollisionGrid {
     this.origin = null; // local x,y of grid corner
     this.fallbackZ = 0;
     this.generation = 0;
+    this.sampledAt = 0;
   }
 
   // Large flat plane at the spawn height so the drone has ground immediately.
@@ -42,7 +57,9 @@ export class CollisionGrid {
   }
 
   needsRefresh(x, y) {
+    if (this.busy) return false;
     if (!this.center) return true;
+    if (performance.now() - this.sampledAt > REFRESH_MAX_AGE_MS) return true;
     return Math.hypot(x - this.center[0], y - this.center[1]) > this.size * 0.28;
   }
 
@@ -65,13 +82,15 @@ export class CollisionGrid {
       let valid = 0, sum = 0;
       for (const h of heights) if (h !== undefined) { valid++; sum += h; }
       const meanH = valid ? sum / valid : 0;
-      for (let k = 0; k < cartos.length; k++) {
+      const scratch = new Cesium.Cartesian3();
+      await sliced(cartos.length, (k) => {
         const c = cartos[k];
         const h = heights[k] === undefined ? meanH : heights[k];
-        const p = this.frame.toLocalPoint(Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, h));
+        const p = this.frame.toLocalPoint(Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, h, undefined, scratch));
         pos[k * 3] = p[0]; pos[k * 3 + 1] = p[1]; pos[k * 3 + 2] = p[2];
         zs[k] = p[2];
-      }
+      });
+      if (gen !== this.generation) return;
       const idx = new Uint32Array(n * n * 6);
       let t = 0;
       for (let j = 0; j < n; j++)
@@ -94,19 +113,21 @@ export class CollisionGrid {
         meshIdx.set(idx);
         const off = pos.length / 3;
         for (let k = 0; k < bt.indices.length; k++) meshIdx[idx.length + k] = bt.indices[k] + off;
-        for (let k = 0; k < cartos.length; k++) {
+        await sliced(cartos.length, (k) => {
           const roof = this.buildings.roofHeightAt(Cesium.Math.toDegrees(cartos[k].longitude), Cesium.Math.toDegrees(cartos[k].latitude));
           if (roof !== undefined) {
             const c = cartos[k];
             const p = this.frame.toLocalPoint(Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, roof));
             if (p[2] > zs[k]) zs[k] = p[2];
           }
-        }
+        });
+        if (gen !== this.generation) return;
       }
       this.engine.loadMesh(meshPos, meshIdx, null);
       this.z = zs;
       this.origin = [ox, oy];
       this.center = [x, y];
+      this.sampledAt = performance.now();
     } catch (e) {
       console.warn("collision sampling failed", e);
     } finally {
@@ -116,18 +137,27 @@ export class CollisionGrid {
 
   async _sample(cartos) {
     const scene = this.viewer.scene;
-    if (this.viewer._efTileset && scene.sampleHeightSupported) {
-      const out = await scene.sampleHeightMostDetailed(cartos.map((c) => c.clone()), this.exclude, 0.5);
-      return out.map((c) => (c && c.height !== undefined && isFinite(c.height) ? c.height : undefined));
+    const out = new Array(cartos.length);
+    const tileset = this.viewer._efTileset;
+    if (tileset) {
+      // Google 3D tiles: CPU ray test against the tiles already loaded around
+      // the drone. (scene.sampleHeightMostDetailed traverses the whole tileset
+      // and renders an offscreen pick per point - over a thousand per refresh,
+      // which froze the app for 1-2 s every few seconds.)
+      await sliced(cartos.length, (k) => {
+        const h = tileset.getHeight(cartos[k], scene);
+        out[k] = h !== undefined && isFinite(h) ? h : undefined;
+      });
+      return out;
     }
     if (scene.terrainProvider instanceof Cesium.CustomHeightmapTerrainProvider) {
       try { return await sampleFreeTerrain(scene.terrainProvider, cartos); } catch (_) { /* fall through */ }
     }
     const flat = scene.terrainProvider instanceof Cesium.EllipsoidTerrainProvider;
-    return cartos.map((c) => {
-      if (flat) return 0;
-      const h = scene.globe.getHeight(c);
-      return h === undefined ? 0 : h;
+    await sliced(cartos.length, (k) => {
+      const h = flat ? 0 : scene.globe.getHeight(cartos[k]);
+      out[k] = h === undefined ? 0 : h;
     });
+    return out;
   }
 }

@@ -12,7 +12,17 @@ export function wireDroneOptions({ settings, save, drone, toast }) {
   const toK = (v) => (Math.abs(v) < 0.025 ? 1 : Math.pow(10, v));
   const toV = (k) => Math.log10(Math.min(10, Math.max(0.1, k || 1)));
 
+  const invertBoxes = [...document.querySelectorAll(".invert input[data-axis]")];
+  for (const box of invertBoxes) {
+    box.addEventListener("change", () => {
+      settings.invertAxes = { ...(settings.invertAxes || {}), [box.dataset.axis]: box.checked };
+      save(settings);
+      drone.applyOptions();
+    });
+  }
+
   function sync() {
+    for (const box of invertBoxes) box.checked = !!(settings.invertAxes || {})[box.dataset.axis];
     video.checked = !!settings.realisticVideo;
     battery.checked = settings.infiniteBattery !== false;
     scale.value = String(toV(settings.worldScale));

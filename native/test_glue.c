@@ -18,6 +18,8 @@ const char *ef_arming_text(void);
 const char *ef_last_error(void);
 void ef_set_infinite_battery(int);
 void ef_set_unlimited_video(int);
+void ef_set_inverted(unsigned);
+float ef_channel(int);
 
 static void sleep_s(double s) {
     struct timespec ts = {(time_t)s, (long)((s - (time_t)s) * 1e9)};
@@ -67,6 +69,19 @@ int main(void) {
     for (int i = 0; i < 30; i++) { fpv_input_set_channels(ch, 10); s = ef_tick(0.01f); sleep_s(0.01); }
     printf("video at 3 km: noise=%.2f realistic, %.3f unlimited\n", farNoise, s[49]);
     if (!(farNoise > 0.5f && s[49] < 0.05f)) { printf("FAIL: unlimited video range\n"); fail = 1; }
+
+    /* Inverted axes (Earth Flyer patch), on the keyboard source: pitch forward = +0.6. */
+    fpv_input_clear_channels();
+    fpv_input_key(258 /* FPV_KEY_UP */, 1);
+    for (int i = 0; i < 70; i++) { s = ef_tick(0.01f); sleep_s(0.01); }
+    float pitchNormal = ef_channel(1);
+    ef_set_inverted(2); /* pitch */
+    for (int i = 0; i < 20; i++) { s = ef_tick(0.01f); sleep_s(0.01); }
+    float pitchInverted = ef_channel(1);
+    fpv_input_key(258, 0);
+    ef_set_inverted(0);
+    printf("pitch channel: %.2f normal, %.2f inverted\n", pitchNormal, pitchInverted);
+    if (!(pitchNormal > 0.3f && pitchInverted < -0.3f)) { printf("FAIL: inverted axes\n"); fail = 1; }
 
     printf(fail ? "RESULT: FAIL\n" : "RESULT: PASS\n");
     return fail;

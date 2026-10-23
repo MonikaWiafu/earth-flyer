@@ -60,6 +60,7 @@ export class BasicDrone {
   repair() { this.crashed = false; }
   despawn() {}
   setPaused() {}
+  setInverted(mask) { this.invert = mask >>> 0; }
   inputStatus() { return { source: this._gamepad() ? "gamepad" : "keyboard", needsSetup: false, devices: this._gamepad() ? 1 : 0, device: this._gamepad()?.id || "" }; }
 
   key(code, down) {
@@ -89,11 +90,17 @@ export class BasicDrone {
       if (pad.buttons[0]?.pressed && !this._padArm) this.armed = !this.armed;
       this._padArm = !!pad.buttons[0]?.pressed;
     }
-    if (k.has(87)) this.throttle = Math.min(1, this.throttle + dt * 0.6); // W
-    if (k.has(83)) this.throttle = Math.max(0, this.throttle - dt * 0.6); // S
+    const inv = this.invert || 0;
+    if (pad && inv & 4) this.throttle = 1 - this.throttle;
+    const up = inv & 4 ? 83 : 87, down = inv & 4 ? 87 : 83;               // inverted throttle swaps W/S
+    if (k.has(up)) this.throttle = Math.min(1, this.throttle + dt * 0.6);
+    if (k.has(down)) this.throttle = Math.max(0, this.throttle - dt * 0.6);
     if (k.has(65)) yaw = -1; if (k.has(68)) yaw = 1;                    // A / D
     if (k.has(258)) pitch = 1; if (k.has(259)) pitch = -1;               // up / down
     if (k.has(256)) roll = -1; if (k.has(257)) roll = 1;                 // left / right
+    if (inv & 1) roll = -roll;
+    if (inv & 2) pitch = -pitch;
+    if (inv & 8) yaw = -yaw;
     return { yaw, pitch, roll };
   }
 
